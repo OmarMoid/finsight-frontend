@@ -1,0 +1,1475 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS Variable Defaults (dark_navy) ──────────────────────────────────── */
+:root {
+  --bg: #0a0e1a;
+  --bg-secondary: #0f1629;
+  --bg-card: #131d35;
+  --bg-card-hover: #1a2540;
+  --bg-input: #0a0e1a;
+  --border: #1e2d4a;
+  --border-light: #243557;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-contrast: #ffffff;
+  --accent-green: #10b981;
+  --accent-red: #ef4444;
+  --accent-gold: #f59e0b;
+  --accent-purple: #8b5cf6;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --nav-bg: rgba(10, 14, 26, 0.95);
+  --chart-grid: #1e2d4a;
+  --chart-line: #3b82f6;
+  --positive: #10b981;
+  --negative: #ef4444;
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --gradient-accent: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+/* ─── Layout metrics ──────────────────────────────────────────────────────
+   The phone and desktop layouts are genuinely different shapes, not one
+   layout squeezed: phone gets a compact top bar plus a bottom tab bar,
+   desktop gets a single taller bar and no bottom chrome. Everything else
+   sizes off these three numbers. */
+:root {
+  --navbar-height: 52px;
+  --tabbar-height: 0px;      /* phone only — set in the media query below */
+  --sidebar-width: 0px;      /* desktop only — set in the 1024px query below */
+  --page-gutter: 16px;
+  --page-max: 1280px;
+  --radius-card: 8px;        /* spec: 8px outer radius on every card */
+  --radius-control: 6px;     /* spec: 6px on buttons and inputs */
+  --card-pad: 16px;          /* spec: 16px standard inner padding */
+  --stack: 12px;             /* default vertical rhythm between blocks */
+}
+
+@media (min-width: 768px) {
+  :root {
+    --navbar-height: 58px;
+    --page-gutter: 24px;
+    --stack: 16px;
+  }
+}
+
+/* ─── Row density ─────────────────────────────────────────────────────────
+   One switch, set on <html> by the store, read by every data table. The two
+   modes are genuinely different jobs: "comfortable" is for reading a handful
+   of rows, "compact" is for scanning a hundred, and the difference is about
+   twice as many rows on screen. */
+:root,
+:root[data-density='comfortable'] {
+  --row-pad-y: 16px;
+  --row-pad-x: 14px;
+}
+
+:root[data-density='compact'] {
+  --row-pad-y: 6px;
+  --row-pad-x: 10px;
+}
+
+/* Where a sticky table header comes to rest. Tables scroll with the page, so
+   the header has to stop below the fixed top bar rather than under it. */
+:root {
+  --table-head-offset: calc(var(--navbar-height) + env(safe-area-inset-top));
+}
+
+/* The nav switches shape at 1024px, not 768px: nine destinations only fit as a
+   horizontal row on a genuinely wide window. Below that — phone, tablet, or a
+   narrow browser window on the Mac — the bottom tab bar takes over, so the
+   page must reserve room for it. */
+@media (max-width: 1023px) {
+  :root {
+    --tabbar-height: 56px;
+  }
+}
+
+/* Above it, navigation moves into a permanent left rail and the page shifts
+   over by exactly its width. Both values live here so the sidebar, the top
+   bar and the page body can never disagree about where the rail ends. */
+@media (min-width: 1024px) {
+  :root {
+    --sidebar-width: 232px;
+  }
+
+  :root[data-sidebar='collapsed'] {
+    --sidebar-width: 64px;
+  }
+}
+
+/* ─── Base Reset ─────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Colour transitions only — transitioning *everything* made hovers feel
+   sluggish and caused visible lag when switching themes on the phone. */
+a,
+button,
+input,
+select,
+textarea,
+.card,
+.chip,
+.stat {
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html {
+  height: 100%;
+  /* Stop iOS auto-inflating text in landscape. */
+  -webkit-text-size-adjust: 100%;
+  /* `clip` rather than `hidden`: a hidden box is still a scroll *container*,
+     so WKWebView will happily pan it under momentum even though no scrollbar
+     exists — which is what let pages drag sideways into empty space with
+     nothing out there to see. `clip` creates no scrollport at all, so there
+     is nothing to pan. Set on html as well as body because overflow on body
+     only propagates to the viewport while html is `visible`. */
+  overflow-x: clip;
+  /* Horizontal overscroll chaining is what turns a swipe that started inside
+     a table into a page-level rubber band. */
+  overscroll-behavior-x: none;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  /* Subtle layered glow for depth — keeps flat-colour themes from looking dead. */
+  background-image:
+    radial-gradient(900px circle at 15% -5%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 55%),
+    radial-gradient(1100px circle at 100% 0%, color-mix(in srgb, var(--accent-purple) 5%, transparent), transparent 50%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  letter-spacing: -0.006em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Inter's contextual alternates + proper quotes/ligatures. */
+  font-feature-settings: 'cv05' 1, 'cv08' 1, 'ss01' 1;
+  /* The page must never scroll sideways — wide tables scroll inside their own
+     overflow-x containers instead. See the note on `html` for why this is
+     `clip` and not `hidden`. */
+  overflow-x: clip;
+  max-width: 100%;
+  /* Kill the rubber-band bounce that makes a WKWebView feel like a web page. */
+  overscroll-behavior: none;
+}
+
+/* Nothing may be wider than the screen. A single overflowing table or a long
+   unbroken string used to make the whole shell pannable; now the offending
+   element is clipped to its own box and the page stays put. */
+#root {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
+/* Headings inherit the fluid scale from Tailwind; this just stops the browser
+   defaults leaking in where a bare tag is used. */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+}
+
+p {
+  margin: 0;
+}
+
+/* Selection + focus polish. */
+::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--text-primary);
+}
+
+/* A ring rather than a hard outline: it reads as part of the control instead
+   of a rectangle drawn around it, and it works on rounded shapes. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.btn:focus-visible,
+.chip:focus-visible,
+.input:focus-visible,
+.segmented > button:focus-visible,
+.tabs > button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+  border-color: var(--accent);
+}
+
+/* Nothing should flash grey-blue when tapped on iOS. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ─── Numerals ────────────────────────────────────────────────────────────
+   Every figure in a financial UI should be tabular so columns line up and
+   digits don't jitter as prices tick. This is the single biggest thing that
+   makes the app read as a professional terminal rather than a web dashboard. */
+.font-mono,
+.tabular,
+table td,
+table th {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'zero' 1;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  /* JetBrains Mono runs wide; pulling it in keeps big price figures from
+     sprawling across a phone screen. */
+  letter-spacing: -0.03em;
+}
+
+/* Large monospace figures (prices, scores) want to be tighter still. */
+.text-2xl.font-mono,
+.text-3xl.font-mono,
+.text-4xl.font-mono,
+.text-5xl.font-mono {
+  letter-spacing: -0.045em;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── Page shell ─────────────────────────────────────────────────────────
+   One container for every page: consistent gutters, a max width, and enough
+   bottom padding to clear the phone tab bar. */
+.page {
+  width: 100%;
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding-inline: var(--page-gutter);
+  padding-block: 18px calc(28px + var(--tabbar-height) + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  .page {
+    padding-block: 24px 40px;
+  }
+}
+
+.page-narrow {
+  --page-max: 900px;
+}
+
+/* Page heading block: title + optional subtitle + optional right-hand action. */
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.page-title {
+  font-size: theme('fontSize.2xl[0]');
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.page-sub {
+  margin-top: 2px;
+  font-size: theme('fontSize.sm[0]');
+  color: var(--text-secondary);
+}
+
+/* Section label above a group of cards. */
+.section-label {
+  font-size: theme('fontSize.xs[0]');
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.stack > * + * {
+  margin-top: var(--stack);
+}
+
+/* ─── Card ───────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--card-pad);
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+@media (hover: hover) {
+  .card:hover {
+    border-color: var(--border-light);
+  }
+
+  /* Cards that act as links/buttons get a gentle lift — but only on devices
+     with a real pointer, so a tap on the phone doesn't leave one stuck. */
+  a.card:hover,
+  button.card:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  }
+}
+
+/* Card with its own internal padding (tables, embeds, header rows). */
+.card-flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Same idea for a card holding a data table, minus the overflow clip.
+   `overflow: hidden` makes an element a scroll *port* even when it never
+   scrolls, and a sticky header offsets itself from the nearest scrollport —
+   so inside a .card-flush the header was shoved 58px down the card and sat on
+   top of the first row. Leaving overflow visible keeps the page as the
+   scrollport, which is what the offset is measured against. */
+.card-table {
+  padding: 0;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px var(--card-pad);
+  border-bottom: 1px solid var(--border);
+}
+
+.card-title {
+  font-size: theme('fontSize.sm[0]');
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.card-body {
+  padding: var(--card-pad);
+}
+
+/* ─── Stat tile ───────────────────────────────────────────────────────────
+   The small label-over-value block used all over the app. */
+.stat {
+  background: var(--bg-input);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  padding: 8px 10px;
+  min-width: 0;
+}
+
+.stat-label {
+  font-size: theme('fontSize.2xs[0]');
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-value {
+  margin-top: 2px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  font-size: theme('fontSize.sm[0]');
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* ─── Segmented control ───────────────────────────────────────────────────
+   Replaces the ad-hoc "row of pill buttons" pattern that appeared in eight
+   slightly different forms across the app. */
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  flex-shrink: 0;
+}
+
+.segmented > button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: theme('fontSize.xs[0]');
+  font-weight: 600;
+  line-height: 1;
+  padding: 7px 11px;
+  border-radius: calc(var(--radius-control) - 3px);
+  white-space: nowrap;
+}
+
+.segmented > button {
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+@media (hover: hover) {
+  .segmented > button:hover:not([aria-pressed='true']):not(.is-active) {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+  }
+}
+
+.segmented > button[aria-pressed='true'],
+.segmented > button.is-active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ─── TradingView embeds ──────────────────────────────────────────────────
+   The widget itself is a cross-origin iframe whose fonts and colours are
+   TradingView's own — only its `colorTheme` can be steered from our side. The
+   card around it is ours, so it carries the themed surface: a widget that has
+   not painted yet sits on --bg-card rather than flashing white on a dark
+   theme, and the light themes get the same treatment for free. */
+.tv-card {
+  background: var(--bg-card);
+}
+
+.tv-card iframe {
+  display: block;
+  border: 0;
+  color-scheme: normal;
+}
+
+/* Eight timeframe buttons overflow a phone. Let the strip scroll rather than
+   wrap onto a second row or squash the labels. */
+.segmented.period-scroll {
+  display: flex;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.segmented.period-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.segmented.period-scroll > button {
+  flex: 0 0 auto;
+  padding: 7px 9px;
+}
+
+/* ─── Chip / pill button ─────────────────────────────────────────────────── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: theme('fontSize.xs[0]');
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.chip {
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+    transform 0.08s ease;
+}
+
+@media (hover: hover) {
+  button.chip:hover,
+  a.chip:hover {
+    border-color: var(--border-light);
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+  }
+}
+
+button.chip:active,
+a.chip:active {
+  transform: scale(0.97);
+}
+
+.chip.is-active {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Small non-interactive label (exchange, sector, level). */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: theme('fontSize.2xs[0]');
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  /* 40px minimum keeps every button at a comfortable touch target without
+     having to remember padding at each call site. */
+  min-height: 40px;
+  padding: 9px 14px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: theme('fontSize.sm[0]');
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.08s ease;
+}
+
+@media (hover: hover) {
+  .btn:hover:not(:disabled) {
+    background: var(--bg-card-hover);
+    border-color: var(--border-light);
+    color: var(--text-primary);
+  }
+}
+
+/* Every button acknowledges the press. Without this the app felt unresponsive
+   on touch, where there is no hover state to fall back on. */
+.btn:active:not(:disabled) {
+  transform: scale(0.975);
+}
+
+.btn-primary {
+  background: var(--gradient-accent);
+  border-color: transparent;
+  color: var(--accent-contrast);
+  font-weight: 600;
+  box-shadow: 0 4px 14px -6px var(--accent);
+}
+
+@media (hover: hover) {
+  .btn-primary:hover:not(:disabled) {
+    background: var(--gradient-accent);
+    border-color: transparent;
+    color: var(--accent-contrast);
+    filter: brightness(1.07);
+    box-shadow: 0 6px 18px -6px var(--accent);
+  }
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.btn-danger {
+  background: color-mix(in srgb, var(--negative) 12%, var(--bg-card));
+  border-color: color-mix(in srgb, var(--negative) 45%, var(--border));
+  color: var(--negative);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ─── Inputs ──────────────────────────────────────────────────────────────── */
+.input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  padding: 9px 12px;
+  font-size: theme('fontSize.sm[0]');
+  outline: none;
+}
+
+.input {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+/* ─── Scrollable tab strip ────────────────────────────────────────────────
+   Used for the StockDetail / Sentiment / Valuation-Lab tab rows. On a phone
+   these overflow, so they scroll horizontally with the scrollbar hidden and
+   the underline sitting on the strip rather than the page. */
+.tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  border-bottom: 1px solid var(--border);
+  margin-inline: calc(var(--page-gutter) * -1);
+  padding-inline: var(--page-gutter);
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .tabs {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+}
+
+.tabs > button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 10px 12px;
+  font-size: theme('fontSize.sm[0]');
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tabs > button.is-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ─── Horizontal snap carousel (dashboard index cards) ────────────────────── */
+.carousel {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  /* Bleed to the screen edges on a phone so cards scroll off naturally
+     instead of stopping inside a visible gutter. */
+  margin-inline: calc(var(--page-gutter) * -1);
+  padding-inline: var(--page-gutter);
+  padding-bottom: 4px;
+}
+
+.carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel > * {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+
+@media (min-width: 768px) {
+  .carousel {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+}
+
+/* ─── Tile grid ───────────────────────────────────────────────────────────
+   The replacement for a horizontal carousel wherever the number of items is
+   small and fixed — market indices, summary stats. A carousel hides items
+   off-screen behind a gesture and, because it bleeds to the screen edges, put
+   the first card 16px from the bezel while every neighbouring card sat at
+   32px, so the row read as misaligned. A wrapping grid shows everything at
+   once, keeps the page gutter, and cannot be scrolled sideways at all.
+   `minmax(0, 1fr)` is load-bearing: the default `auto` minimum lets a long
+   index name push its column past the container and reintroduce overflow. */
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (min-width: 560px) {
+  .tile-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .tile-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+/* Every grid and flex child defaults to a content-based minimum size, which
+   is the single most common cause of a layout overflowing its container: one
+   long ticker name, one wide number, and the row grows past the screen. */
+.tile-grid > *,
+.stack > * {
+  min-width: 0;
+}
+
+/* ─── Data tables ────────────────────────────────────────────────────────── */
+/* A sticky header offsets itself from the nearest *scrollport*, and any box
+   that clips or scrolls its own content is one — even when it never actually
+   scrolls. Inside one of these the offset has to reset to the box's own top
+   edge; leaving it at the navbar height shoves the header down over the first
+   row. Listed here rather than fixed per page so a table dropped into a
+   clipped container later can't reintroduce it. */
+.table-scroll,
+.card-flush,
+.overflow-hidden,
+.overflow-auto,
+.overflow-x-auto,
+.overflow-y-auto {
+  --table-head-offset: 0px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  /* Let a wide table use the full screen width on a phone. */
+  margin-inline: calc(var(--card-pad) * -1);
+  padding-inline: var(--card-pad);
+}
+
+table {
+  border-collapse: collapse;
+}
+
+/* The house data grid. No interior vertical rules — columns are separated by
+   alignment and whitespace, which is how a terminal does it; ruled cells read
+   as a spreadsheet and slow scanning down. Horizontal rhythm comes from the
+   alternating row tint instead.
+   These selectors are 0,1,1 and the file is emitted after Tailwind's
+   utilities, so they win over a leftover `py-2` on a cell — which is what
+   lets the density switch actually take effect on existing markup. */
+.data-table {
+  width: 100%;
+  font-size: theme('fontSize.sm[0]');
+  border-collapse: separate;   /* required for sticky headers to keep borders */
+  border-spacing: 0;
+}
+
+.data-table thead th {
+  position: sticky;
+  top: var(--table-head-offset);
+  z-index: 2;
+  font-weight: 600;
+  font-size: theme('fontSize.2xs[0]');
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 9px var(--row-pad-x);
+  white-space: nowrap;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  /* A card clips its corners; without this the header tint bleeds past the
+     first cell's rounded edge while scrolling. */
+  background-clip: padding-box;
+}
+
+/* Default alignment only. Deliberately zero-specificity so a per-column
+   `text-right` (or the .num rule below) still wins — the density padding above
+   has to beat utilities, but alignment must not. */
+:where(.data-table thead th) {
+  text-align: left;
+}
+
+.data-table th[data-sortable] {
+  cursor: pointer;
+  user-select: none;
+}
+
+@media (hover: hover) {
+  .data-table th[data-sortable]:hover {
+    color: var(--text-secondary);
+  }
+}
+
+.data-table td {
+  padding: var(--row-pad-y) var(--row-pad-x);
+  /* Interior rules removed: alignment and the zebra tint do the separating. */
+  border: 0;
+  vertical-align: middle;
+}
+
+/* Zero specificity again — a cell that colours itself (a name in secondary, a
+   change % in red) must keep its colour. */
+:where(.data-table td) {
+  color: var(--text-primary);
+}
+
+/* Zebra striping, not row borders. The tint is derived from the card surface
+   so it lands correctly in both a near-black and a pure-white theme. */
+.data-table tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--text-primary) 3.5%, transparent);
+}
+
+@media (hover: hover) {
+  .data-table tbody tr:hover {
+    background: var(--accent-soft);
+  }
+}
+
+.data-table tbody tr {
+  transition: background 0.12s ease;
+}
+
+.data-table td.num,
+.data-table th.num {
+  text-align: right;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: -0.03em;
+}
+
+.data-table th.num {
+  font-family: inherit;
+  letter-spacing: 0.06em;
+}
+
+/* Long company and fund names truncate rather than wrapping — one wrapped
+   name would otherwise set the height of an entire row of numbers.
+   max-width:0 + table-layout auto is the trick that makes ellipsis work in a
+   table cell at all; the width still comes from the rest of the row. */
+.data-table td.trunc {
+  max-width: 0;
+  width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Small explanatory tables (worked examples, assumption lists) opt out of the
+   density switch — they are prose, not a grid to scan. */
+.data-table.table-tight td {
+  padding: 6px 8px;
+}
+
+/* ─── Utility Classes ────────────────────────────────────────────────────── */
+.positive {
+  color: var(--positive);
+}
+
+.negative {
+  color: var(--negative);
+}
+
+.neutral {
+  color: var(--text-secondary);
+}
+
+/* Truncate to N lines. */
+.clamp-1,
+.clamp-2,
+.clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.clamp-1 { -webkit-line-clamp: 1; }
+.clamp-2 { -webkit-line-clamp: 2; }
+.clamp-3 { -webkit-line-clamp: 3; }
+
+/* Row actions that appear on hover on desktop must be permanently visible on
+   touch, where there is no hover state to reveal them. */
+.hover-action {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.group:hover .hover-action,
+.group:focus-within .hover-action {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .hover-action {
+    opacity: 1;
+  }
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────────── */
+.fade-in {
+  animation: fadeIn 0.28s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 4px var(--accent);
+  }
+  50% {
+    box-shadow: 0 0 16px var(--accent), 0 0 32px var(--accent);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sheetUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Skeleton Loading ─────────────────────────────────────────────────────
+   Skeletons mirror the geometry of what is loading — a stat tile is a label
+   bar over a value bar, a table is rows of the right height — so the layout
+   does not jump when the data lands. A spinner in the middle of an empty card
+   tells you nothing about what is coming. */
+/* Mixed from the foreground colour against a transparent base rather than
+   named surface colours: that way one rule reads correctly on the page, on a
+   card and on an inset, in a near-black theme and on pure white — the earlier
+   --bg-card → --border gradient was invisible in Executive Light, where those
+   two are almost the same colour. */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--text-primary) 7%, transparent) 25%,
+    color-mix(in srgb, var(--text-primary) 15%, transparent) 50%,
+    color-mix(in srgb, var(--text-primary) 7%, transparent) 75%
+  );
+  background-size: 936px 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: 6px;
+}
+
+/* ─── Dashboard widget grid ───────────────────────────────────────────────
+   Fixed-track responsive grid: widgets claim whole columns and fill the row,
+   so a dashboard never ends up with one orphan card on its own line. */
+.grid-widgets {
+  display: grid;
+  gap: var(--stack);
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.grid-widgets > .span-2 {
+  grid-column: span 2;
+}
+
+@media (max-width: 639px) {
+  .grid-widgets > .span-2 {
+    grid-column: span 1;
+  }
+}
+
+/* ─── Status banners ──────────────────────────────────────────────────────
+   One shape for every "this did not load" message, so a failed API call
+   degrades into a readable strip instead of an empty card or a blank page. */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: theme('fontSize.sm[0]');
+}
+
+.alert > svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.alert-error {
+  border-color: color-mix(in srgb, var(--negative) 40%, var(--border));
+  background: color-mix(in srgb, var(--negative) 9%, var(--bg-card));
+  color: var(--negative);
+}
+
+.alert-warn {
+  border-color: color-mix(in srgb, var(--accent-gold) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent-gold) 9%, var(--bg-card));
+  color: var(--accent-gold);
+}
+
+.alert-info {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ─── Chart tooltip ───────────────────────────────────────────────────────
+   A micro-card that tracks the cursor. Pointer-events are off so it can sit
+   under the mouse without stealing the crosshair it is describing. */
+.chart-tip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: var(--bg-elevated, var(--bg-card));
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-lg);
+  font-size: theme('fontSize.2xs[0]');
+  line-height: 1.35;
+  white-space: nowrap;
+  /* No transition on position: the card must sit exactly on the cursor, and
+     easing it there reads as lag. Only the fade in/out is animated. */
+  transition: opacity 0.12s ease;
+}
+
+.chart-tip-value {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: theme('fontSize.sm[0]');
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.chart-tip-label {
+  color: var(--text-muted);
+}
+
+/* ─── Gradient Border ────────────────────────────────────────────────────── */
+.gradient-border {
+  position: relative;
+  background: var(--bg-card);
+  border-radius: var(--radius-card);
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+  padding: 1px;
+  background: var(--gradient-accent);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ─── App chrome (nav bars) ──────────────────────────────────────────────────
+   env(safe-area-inset-*) resolves to 0px on desktop browsers, so the notch
+   handling here is inert on the web and only takes effect on the device. */
+
+.app-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  height: calc(var(--navbar-height) + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+  padding-left: max(var(--page-gutter), env(safe-area-inset-left));
+  padding-right: max(var(--page-gutter), env(safe-area-inset-right));
+  background: var(--nav-bg);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-main {
+  padding-top: calc(var(--navbar-height) + env(safe-area-inset-top));
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  min-height: 100vh;
+}
+
+/* ─── Desktop sidebar ────────────────────────────────────────────────────
+   Nine destinations as a horizontal row of text links was the weakest part
+   of the old chrome: no icons, no room for an active indicator that reads at
+   a glance, and it competed with the search field for the same strip. A rail
+   gives each destination a full row, a persistent icon, and a 3px marker on
+   the active one. */
+@media (min-width: 1024px) {
+  .app-main {
+    padding-left: var(--sidebar-width);
+  }
+
+  /* The rail runs full height and owns the brand lockup, so the bar starts
+     where the rail ends. */
+  .app-navbar {
+    padding-left: calc(var(--sidebar-width) + var(--page-gutter));
+  }
+}
+
+.app-sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 60;
+  width: var(--sidebar-width);
+  display: none;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  transition: width 0.18s ease;
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .app-sidebar {
+    display: flex;
+  }
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: calc(var(--navbar-height) + env(safe-area-inset-top));
+  padding-inline: 16px;
+  flex-shrink: 0;
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  height: 38px;
+  padding-inline: 11px;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  font-size: theme('fontSize.sm[0]');
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+
+.sidebar-link > svg {
+  flex-shrink: 0;
+}
+
+@media (hover: hover) {
+  .sidebar-link:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+  }
+}
+
+.sidebar-link.is-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* The active marker: a 3px bar on the rail edge rather than a filled pill, so
+   the eye finds the current route from the sidebar's outline alone. */
+.sidebar-link.is-active::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+}
+
+.sidebar-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Collapsed: icons only. The labels are removed from the flow rather than
+   hidden, so nothing reflows awkwardly at the halfway point of the
+   transition. */
+:root[data-sidebar='collapsed'] .sidebar-label,
+:root[data-sidebar='collapsed'] .sidebar-foot-label {
+  display: none;
+}
+
+:root[data-sidebar='collapsed'] .sidebar-link,
+:root[data-sidebar='collapsed'] .sidebar-foot > button {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+:root[data-sidebar='collapsed'] .sidebar-brand {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.sidebar-foot {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-foot > button {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  height: 34px;
+  padding-inline: 11px;
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-control);
+  color: var(--text-muted);
+  font-size: theme('fontSize.xs[0]');
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .sidebar-foot > button:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+  }
+}
+
+/* Bottom tab bar — phone only. Hidden entirely at desktop widths, where the
+   horizontal nav in the top bar takes over. */
+.app-tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  height: calc(var(--tabbar-height) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  background: var(--nav-bg);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  border-top: 1px solid var(--border);
+}
+
+@media (min-width: 1024px) {
+  .app-tabbar {
+    display: none;
+  }
+}
+
+.app-tabbar button,
+.app-tabbar a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  padding: 0;
+  text-decoration: none;
+}
+
+.app-tabbar .is-active {
+  color: var(--accent);
+}
+
+/* Sheet used by the phone search and "More" menu. */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 61;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  border-radius: 18px 18px 0 0;
+  padding: 10px 16px calc(16px + env(safe-area-inset-bottom));
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: sheetUp 0.22s ease forwards;
+}
+
+.sheet-grabber {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-light);
+  margin: 2px auto 12px;
+}
+
+/* ─── Mobile input sizing ─────────────────────────────────────────────────── */
+@media (max-width: 1023px) {
+  /* iOS zooms the viewport when focusing an input smaller than 16px. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Comfortable tap targets without disturbing the desktop layout. */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  a[role='button'],
+  .chip,
+  .btn,
+  .segmented > button {
+    min-height: 34px;
+  }
+
+  .app-tabbar button,
+  .app-tabbar a {
+    min-height: 0;
+  }
+}
+
+/* Momentum scrolling inside every horizontally-scrollable container. */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}

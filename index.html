@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover lets the app paint under the notch/home indicator;
+         the safe-area insets in index.css keep content clear of them.
+         user-scalable=no stops iOS zooming the whole UI on input focus. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="description" content="FinSight - Institutional-Grade Market Intelligence for ASX & US markets." />
+    <meta name="theme-color" content="#080c17" />
+    <!-- The FinSight mark, inlined so the tab icon costs no extra request and
+         stays identical to components/common/Logo.jsx. -->
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%235b9bff'/%3E%3Cstop offset='100%25' stop-color='%232f6fe0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='7' fill='url(%23g)'/%3E%3Cg fill='%2304101f'%3E%3Crect x='6' y='6' width='2.4' height='20' rx='1.2'/%3E%3Crect x='6' y='6' width='7.6' height='2.4' rx='1.2'/%3E%3Crect x='6' y='14.8' width='5.8' height='2.4' rx='1.2' opacity='.75'/%3E%3Crect x='16' y='19' width='2.6' height='7' rx='1.3' opacity='.5'/%3E%3Crect x='20.2' y='15.5' width='2.6' height='10.5' rx='1.3' opacity='.72'/%3E%3Crect x='24.4' y='11' width='2.6' height='15' rx='1.3' opacity='.95'/%3E%3Ccircle cx='25.6' cy='8.5' r='1.9'/%3E%3C/g%3E%3Cpath d='M16.8 16.6 21.4 12.9 25.6 8.5' fill='none' stroke='%2304101f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' opacity='.9'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <title>FinSight - Market Intelligence</title>
+    <style>
+      /* Prevent flash of unstyled background before CSS loads. */
+      html, body { background: var(--bg, #0a0e1a); margin: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

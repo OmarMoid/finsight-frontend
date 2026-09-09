@@ -1,0 +1,14 @@
+{
+  "appId": "com.omarm.finsight",
+  "appName": "FinSight",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "never",
+    "limitsNavigationsToAppBoundDomains": false,
+    "backgroundColor": "#0a0e1a"
+  },
+  "server": {
+    "iosScheme": "capacitor",
+    "cleartext": true
+  }
+}

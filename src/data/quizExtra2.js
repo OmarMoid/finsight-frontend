@@ -1,0 +1,351 @@
+// Third question pool, merged with QUIZ_BANKS and EXTRA_QUIZ at runtime.
+//
+// Why a third batch: an attempt draws 8 questions, so a 10-question pool meant
+// a retake reused at least six of them and felt like the same quiz. These push
+// the original 47 topics to ~15 questions each, which — together with the
+// engine's "avoid recently seen" pass — makes a second attempt genuinely new.
+//
+// These deliberately test different things from the first two batches:
+// calculation, discriminating between similar concepts, and applying the idea
+// rather than restating it.
+
+export const EXTRA_QUIZ_2 = {
+  // ── Fundamentals ────────────────────────────────────────────────────────
+  fs101: [
+    { question: 'Closing equity of $2,750M against opening $2,400M, net income $500M, dividends $150M and buybacks $200M implies:', options: ['An arithmetic error in the accounts', 'Something else moved equity, most likely other comprehensive income', 'A share split', 'A goodwill impairment'], correct: 'B', explanation: 'OCI (currency translation, pensions, hedges) bypasses the income statement.' },
+    { question: 'Capex on the cash flow statement flows through to which balance sheet line?', options: ['Retained earnings', 'Property, plant and equipment', 'Payables', 'Deferred revenue'], correct: 'B', explanation: 'Capex builds PP&E; depreciation reduces it.' },
+    { question: 'Closing cash on the cash flow statement should tie to:', options: ['Revenue', 'The cash line on the balance sheet, exactly', 'Net income', 'Equity'], correct: 'B', explanation: 'The statements articulate; the cash figure must reconcile precisely.' },
+    { question: 'A company reports rising revenue, rising net income, and falling operating cash flow. The most useful next step is:', options: ['Buy it', 'Examine receivables and inventory on the balance sheet', 'Check the dividend', 'Read the CEO letter'], correct: 'B', explanation: 'The balance sheet explains where the profit went instead of into cash.' },
+    { question: 'Other comprehensive income matters because it:', options: ['Is always zero', 'Moves equity without appearing in reported profit', 'Is a cash item', 'Only applies to banks'], correct: 'B', explanation: 'Losses can accumulate there without ever hitting EPS.' },
+  ],
+  fs102: [
+    { question: 'The justified forward P/E from the Gordon model is:', options: ['payout / (Ke − g)', 'ROE × payout', 'g / Ke', '(Ke − g) / payout'], correct: 'A', explanation: 'It falls directly out of the dividend discount model.' },
+    { question: 'With a 40% payout, 9% cost of equity and 4% growth, justified P/E is:', options: ['8.0×', '10.0×', '15.0×', '4.4×'], correct: 'A', explanation: '0.40 / (0.09 − 0.04) = 8.0.' },
+    { question: 'The justified P/B ratio equals:', options: ['(ROE − g) / (Ke − g)', 'ROE / Ke', 'payout / Ke', 'g / ROE'], correct: 'A', explanation: 'Which is why a bank earning above its cost of equity trades above book.' },
+    { question: 'A bank with 7% ROE and a 10% cost of equity should trade:', options: ['Above book value', 'Below book value', 'At exactly book value', 'At 2× book'], correct: 'B', explanation: 'It destroys value on every dollar of equity it holds.' },
+    { question: 'At a cyclical earnings trough, trailing and forward P/E:', options: ['Are identical', 'Can differ by 40% or more', 'Are both meaningless', 'Converge'], correct: 'B', explanation: 'Depressed trailing earnings make the stock look expensive precisely when it is cheap.' },
+  ],
+  fs103: [
+    { question: 'The accruals ratio is calculated as:', options: ['(Net income − Operating cash flow) / Average total assets', 'Net income / Revenue', 'OCF / Net income', 'Accruals / Equity'], correct: 'A', explanation: 'It scales the non-cash portion of profit by the asset base.' },
+    { question: 'Sloan’s research found companies with the highest accruals:', options: ['Outperform', 'Persistently underperform', 'Perform in line', 'Are always frauds'], correct: 'B', explanation: 'One of the most replicated anomalies in accounting research.' },
+    { question: 'Net income $800M, operating cash flow $520M, average assets $6,000M. The accruals ratio is:', options: ['4.7%', '13.3%', '8.7%', '65%'], correct: 'A', explanation: '(800 − 520) / 6,000 = 4.7%.' },
+    { question: 'A cash conversion ratio (OCF / net income) persistently above 1.0 suggests:', options: ['Aggressive accounting', 'High earnings quality', 'Imminent distress', 'Excessive leverage'], correct: 'B', explanation: 'Profit is more than fully backed by cash.' },
+    { question: 'A single year of high accruals is best treated as:', options: ['Proof of manipulation', 'A question to investigate, since accruals mean-revert', 'Irrelevant', 'A buy signal'], correct: 'B', explanation: 'Persistence or sharp deterioration carries the signal, not one reading.' },
+  ],
+  fs201: [
+    { question: 'If explicit-period PV is $180M and terminal PV is $620M, terminal value represents:', options: ['22% of value', '77% of value', '50% of value', '90% of value'], correct: 'B', explanation: '620 / 800 = 77% - most of the answer sits in one formula.' },
+    { question: 'The mid-year convention discounts cash flows by:', options: ['t', 't − 0.5', 't + 1', '2t'], correct: 'B', explanation: 'Cash arrives through the year, not on 31 December.' },
+    { question: 'Applying the mid-year convention at a 10% discount rate typically raises fair value by about:', options: ['0.5%', '5%', '25%', '50%'], correct: 'B', explanation: 'Half a year less discounting across every cash flow.' },
+    { question: 'The equity bridge from enterprise value subtracts net debt and also:', options: ['Adds minorities', 'Subtracts minority interests and preferred, and adds associates', 'Subtracts revenue', 'Adds goodwill'], correct: 'B', explanation: 'Omitting minorities and associates can move per-share value by 10%+.' },
+    { question: 'Extending an explicit forecast from 5 to 10 years:', options: ['Makes the model more accurate', 'Relocates the guesswork into years 6–10', 'Removes the terminal value', 'Lowers the discount rate'], correct: 'B', explanation: 'You have no more visibility into year 8 than into the terminal formula.' },
+  ],
+  fs202: [
+    { question: 'Invested capital is best defined as:', options: ['Total assets', 'Total debt + equity − cash and equivalents', 'Equity only', 'Revenue × margin'], correct: 'B', explanation: 'Equivalently: net working capital + net PP&E + goodwill and intangibles.' },
+    { question: 'EBIT $1,200M, 25% tax, invested capital $5,000M. ROIC is:', options: ['24%', '18%', '15%', '9%'], correct: 'B', explanation: 'NOPAT = 900; 900 / 5,000 = 18%.' },
+    { question: 'The value-creation identity is:', options: ['(ROIC − WACC) × Invested Capital', 'ROIC × Revenue', 'WACC / ROIC', 'Growth × Margin'], correct: 'A', explanation: 'Growth only creates value when ROIC exceeds WACC.' },
+    { question: 'A company growing 15% a year at 6% ROIC against a 9% WACC is:', options: ['Creating value quickly', 'Destroying value faster the more it grows', 'Value-neutral', 'Underleveraged'], correct: 'B', explanation: 'Each reinvested dollar returns less than it costs.' },
+    { question: 'Leaving large excess cash in invested capital:', options: ['Raises ROIC', 'Drags ROIC down and understates business quality', 'Has no effect', 'Is required by IFRS'], correct: 'B', explanation: 'Idle cash is not capital employed in operations.' },
+  ],
+  fs203: [
+    { question: 'Owner earnings differ from reported FCF mainly by deducting:', options: ['Total capex', 'Only maintenance capex', 'Dividends', 'Interest'], correct: 'B', explanation: 'Growth capex is discretionary and could be returned to owners.' },
+    { question: 'A reasonable first approximation for maintenance capex is:', options: ['Zero', 'Depreciation', 'Total capex', 'Revenue × 10%'], correct: 'B', explanation: 'D&A roughly reflects the cost of maintaining the existing asset base.' },
+    { question: 'OCF $900M, capex $500M, depreciation $280M. Owner earnings approximate:', options: ['$400M', '$620M', '$900M', '$220M'], correct: 'B', explanation: '900 − 280 (maintenance) = $620M.' },
+    { question: 'A capex-to-depreciation ratio sustained above 1.5× indicates:', options: ['Asset base is shrinking', 'Genuine expansion, not just replacement', 'Accounting fraud', 'A dividend cut'], correct: 'B', explanation: 'The company is spending well beyond replacement.' },
+    { question: 'Owner earnings can flatter reality when:', options: ['Assets are new', 'Depreciation understates true replacement cost of old assets under inflation', 'Capex is zero', 'Margins are high'], correct: 'B', explanation: 'Historic-cost depreciation can be far below current replacement cost.' },
+  ],
+  fs204: [
+    { question: 'Minority interests are added to enterprise value because:', options: ['They are debt', 'EBITDA consolidates 100% of a partly-owned subsidiary', 'They pay dividends', 'They are tax-deductible'], correct: 'B', explanation: 'Numerator and denominator must cover the same economic entity.' },
+    { question: 'The value of associates is subtracted from EV because their earnings:', options: ['Are in EBITDA', 'Sit below EBITDA, being equity accounted', 'Are tax-free', 'Are not real'], correct: 'B', explanation: 'Otherwise the multiple double-counts them.' },
+    { question: 'Market cap $8,000M, debt $3,000M, cash $1,200M, minorities $400M, associates $600M. EV is:', options: ['$9,800M', '$9,600M', '$10,400M', '$9,000M'], correct: 'B', explanation: '8,000 + 3,000 + 400 − 1,200 − 600 = $9,600M.' },
+    { question: 'Operating cash a business needs to function is commonly estimated at:', options: ['0%', '1–2% of revenue', '20% of revenue', 'All cash held'], correct: 'B', explanation: 'Deducting the entire balance overstates the cash discount.' },
+    { question: 'Unfunded pension obligations should be treated as:', options: ['Equity', 'Debt in all but name', 'An asset', 'Ignored'], correct: 'B', explanation: 'They are a fixed, senior claim on future cash flow.' },
+  ],
+  fs205: [
+    { question: 'The strongest numerical evidence of a moat is:', options: ['One year of high margins', 'ROIC persistence above cost of capital through a full cycle', 'Large revenue', 'A well-known brand'], correct: 'B', explanation: 'Competition should erode excess returns; persistence implies a barrier.' },
+    { question: 'Pricing power is best tested by looking at gross margins during:', options: ['A boom', 'A downturn such as 2008–09 or 2020', 'An IPO', 'A stock split'], correct: 'B', explanation: 'The ability not to discount when demand falls is the real test.' },
+    { question: 'The sustainable growth identity is:', options: ['ROIC × reinvestment rate', 'ROIC + WACC', 'Margin × turnover', 'Payout × ROE'], correct: 'A', explanation: 'Return on reinvested capital times how much is reinvested.' },
+    { question: 'Company A: 30% ROIC, 20% reinvestment. Company B: 18% ROIC, 80% reinvestment. Their growth rates are:', options: ['6% and 14.4%', '30% and 18%', '10% and 10%', '6% and 6%'], correct: 'A', explanation: 'B compounds far faster despite the lower headline return.' },
+    { question: 'A moat with no reinvestment runway produces:', options: ['A compounder', 'A cash cow', 'A turnaround', 'A cyclical'], correct: 'B', explanation: 'High returns with nowhere to deploy them means value returned, not compounded.' },
+  ],
+  fs301: [
+    { question: 'The implied perpetuity growth from an exit multiple m at discount rate r is:', options: ['(r × m − 1) / (m + 1)', 'r / m', 'm × r', 'm − r'], correct: 'A', explanation: 'It reveals what growth the multiple has quietly assumed.' },
+    { question: 'A 20× exit multiple at a 10% discount rate implies perpetual growth of about:', options: ['2.0%', '4.8%', '8.0%', '10.0%'], correct: 'B', explanation: '(0.10 × 20 − 1) / 21 = 4.8% - above nominal GDP, so implausible.' },
+    { question: 'In steady state, the reinvestment rate equals:', options: ['g / ROIC', 'ROIC / g', 'g × ROIC', '1 − g'], correct: 'A', explanation: 'Growth must be funded; free growth does not exist.' },
+    { question: 'Terminal growth 2.5% with terminal ROIC 12% implies reinvesting what share of NOPAT forever?', options: ['2.5%', '21%', '48%', '0%'], correct: 'B', explanation: '0.025 / 0.12 ≈ 21%.' },
+    { question: 'Terminal FCF $500M, r = 9%, g = 2.5%. Terminal value is approximately:', options: ['$5,556M', '$7,885M', '$12,500M', '$2,000M'], correct: 'B', explanation: '500 × 1.025 / 0.065 ≈ $7,885M.' },
+  ],
+  fs302: [
+    { question: 'A reverse DCF solves for:', options: ['The discount rate', 'The growth rate implied by the current price', 'Terminal value', 'The dividend'], correct: 'B', explanation: 'It inverts the model to extract the market’s embedded expectation.' },
+    { question: 'The technique used to back-solve the implied growth rate is typically:', options: ['Linear regression', 'Bisection over a monotonic function', 'Monte Carlo', 'Least squares'], correct: 'B', explanation: 'Higher growth always gives higher value, so bisection converges reliably.' },
+    { question: 'Implied growth of 25% against a five-year history of 18% and consensus of 22% means:', options: ['The stock is definitely a sell', 'The price requires a rate above both history and consensus for the whole window', 'The model is broken', 'Growth is guaranteed'], correct: 'B', explanation: 'It defines precisely what you are betting on.' },
+    { question: 'The strongest way to interrogate an implied growth rate is to:', options: ['Compare it to the P/E', 'Convert it into implied revenue and market share in the terminal year', 'Ignore it', 'Add a premium'], correct: 'B', explanation: 'Required market share above 100% settles the question immediately.' },
+    { question: 'A high implied growth rate should be treated as:', options: ['An automatic sell signal', 'A hurdle to assess', 'Proof of a bubble', 'A modelling error'], correct: 'B', explanation: 'Some companies do deliver; the value is in knowing the bet.' },
+  ],
+  fs303: [
+    { question: 'A Beneish M-score above which threshold flags elevated manipulation probability?', options: ['−1.78', '0', '3.0', '1.8'], correct: 'A', explanation: 'It famously flagged Enron years before collapse.' },
+    { question: 'An Altman Z-score below 1.8 indicates:', options: ['Safety', 'Distress territory', 'High growth', 'Low leverage'], correct: 'B', explanation: 'Above 3.0 is considered safe; the model is calibrated on manufacturers.' },
+    { question: 'The Altman Z-score misleads most badly for:', options: ['Manufacturers', 'Asset-light and financial businesses', 'Retailers', 'Utilities'], correct: 'B', explanation: 'Its inputs assume a heavy balance sheet.' },
+    { question: '"One-off" restructuring charges appearing three years running are:', options: ['Genuinely non-recurring', 'Part of the cost structure', 'A tax benefit', 'Required disclosure'], correct: 'B', explanation: 'Recurring one-offs are simply costs management wants excluded.' },
+    { question: 'Among forensic warning signs, which combination is most predictive?', options: ['A single ratio breaching a threshold', 'Several independent flags pointing the same way at once', 'High revenue growth alone', 'A falling share price'], correct: 'B', explanation: 'Fraud is found at the intersection of independent signals.' },
+  ],
+  fs304: [
+    { question: 'The step most often omitted from a retail SOTP is:', options: ['Summing the segments', 'Subtracting capitalised unallocated corporate costs', 'Applying a multiple', 'Subtracting debt'], correct: 'B', explanation: '$80M of head-office cost at 10× is $800M of value belonging to no segment.' },
+    { question: 'Typical conglomerate discounts applied in practice are around:', options: ['0%', '10–20%', '50%', '80%'], correct: 'B', explanation: 'Reflecting complexity, cross-subsidy and the parts not actually being for sale.' },
+    { question: 'Segments worth $8.0B, corporate costs capitalised $0.8B, net debt $1.5B, 15% conglomerate discount. Equity value is about:', options: ['$8.0B', '$5.7B', '$4.85B', '$6.5B'], correct: 'C', explanation: '(8.0 − 0.8 − 1.5) × 0.85 = $4.85B.' },
+    { question: 'Each segment should be valued on:', options: ['The group multiple', 'The multiple appropriate to that specific business', 'Book value', 'Revenue only'], correct: 'B', explanation: 'That is the entire point of separating them.' },
+    { question: 'An SOTP without a catalyst is:', options: ['An actionable idea', 'A permanent observation', 'A short thesis', 'A valuation error'], correct: 'B', explanation: 'Conglomerate discounts can persist for decades without a trigger.' },
+  ],
+
+  // ── Technical ───────────────────────────────────────────────────────────
+  ta101: [
+    { question: 'The most informative of a candle’s four values is generally the:', options: ['Open', 'Close', 'High', 'Low'], correct: 'B', explanation: 'The close is where participants were willing to hold risk overnight.' },
+    { question: 'A small body inside a wide range indicates:', options: ['Low participation', 'Enormous activity that resolved into nothing', 'A gap', 'A dividend'], correct: 'B', explanation: 'Great disagreement, no resolution.' },
+    { question: 'A stock opens $50, falls to $46, closes $49.60 with a high of $50.10. This is best read as:', options: ['A bearish day', 'An accumulation day dressed as a down day', 'A neutral day', 'A gap down'], correct: 'B', explanation: 'The close sits in the top 90% of the range after the drop was fully bought.' },
+    { question: 'The same candle pattern at a 52-week low on triple volume versus mid-range on low volume:', options: ['Means the same thing', 'Means very different things', 'Is invalid', 'Cannot be compared'], correct: 'B', explanation: 'Location and volume are what give a pattern content.' },
+    { question: 'The practical approach to candlestick patterns is:', options: ['Memorise dozens of named patterns', 'Read three or four well, in context', 'Ignore them entirely', 'Use only weekly bars'], correct: 'B', explanation: 'Context beats an encyclopaedia read without it.' },
+  ],
+  ta102: [
+    { question: 'Support and resistance exist primarily because of:', options: ['Round numbers', 'Position memory - real inventory held at those prices', 'Exchange rules', 'Algorithmic trading only'], correct: 'B', explanation: 'Break-even sellers, defending shorts and waiting buyers create the flow.' },
+    { question: 'A volume profile’s high-volume node marks a price where:', options: ['Nothing traded', 'Large inventory changed hands, so price tends to stall', 'Price gaps', 'Volatility is lowest'], correct: 'B', explanation: 'Inventory absorbs order flow.' },
+    { question: 'Low-volume nodes in a profile are areas price tends to:', options: ['Stall in', 'Traverse quickly', 'Reverse at', 'Avoid'], correct: 'B', explanation: 'There is little inventory to slow the move.' },
+    { question: 'Levels weaken over time because:', options: ['Charts change', 'The positions that created them get closed or given up', 'Volume falls', 'Of stock splits'], correct: 'B', explanation: 'No memory, no level.' },
+    { question: 'Support and resistance are best treated as:', options: ['Exact prices', 'Zones roughly 1–2% wide', 'Round numbers only', 'Moving averages'], correct: 'B', explanation: 'Precise lines invite stops placed exactly where they get swept.' },
+  ],
+  ta103: [
+    { question: 'VWAP is the:', options: ['Simple average of closes', 'Volume-weighted average price - the day’s true average execution price', 'Exponential average', '200-day average'], correct: 'B', explanation: 'Institutional desks are benchmarked against it.' },
+    { question: 'Anchored VWAP is run from:', options: ['The start of the year always', 'A significant event such as an earnings date or major low', 'The IPO only', 'A random date'], correct: 'B', explanation: 'It shows the average price paid by everyone since that event.' },
+    { question: 'Compared with an SMA, an EMA:', options: ['Reacts more slowly', 'Weights recent data more heavily and reacts faster', 'Ignores volume', 'Is always higher'], correct: 'B', explanation: 'Better for shorter-horizon work, at the cost of more whipsaws.' },
+    { question: 'Golden and death crosses are best used as:', options: ['Precise entry triggers', 'A regime label', 'Exit signals only', 'Valuation tools'], correct: 'B', explanation: 'They lag by construction and whipsaw in ranges.' },
+    { question: 'Optimising a moving average period on historical data typically produces:', options: ['A robust edge', 'A curve-fitted result that fails live', 'Lower drawdowns', 'Higher Sharpe ratios'], correct: 'B', explanation: 'Standard periods work partly because everyone watches them.' },
+  ],
+  ta104: [
+    { question: 'Price rising on falling volume most often indicates:', options: ['Strong demand', 'An advance running out of buyers', 'Distribution', 'A short squeeze'], correct: 'B', explanation: 'Fewer participants supporting each new high.' },
+    { question: 'On-balance volume is most useful for spotting:', options: ['Absolute levels', 'Divergence between accumulation and price', 'Dividends', 'Earnings dates'], correct: 'B', explanation: 'OBV making highs while price stalls suggests quiet accumulation.' },
+    { question: 'Extremely high volume after an extended move often marks:', options: ['Continuation', 'Exhaustion', 'A dividend', 'Index inclusion'], correct: 'B', explanation: 'The last participants capitulate and nobody is left to act.' },
+    { question: 'A breakout on 3.2× average volume versus one on 0.7× tells you:', options: ['Nothing different', 'Which breakout is likely real', 'The price target', 'The dividend yield'], correct: 'B', explanation: 'Identical price action, entirely different conviction.' },
+    { question: 'When comparing volume across time you should adjust for:', options: ['Nothing', 'Index rebalances, options expiry and holidays', 'Currency', 'Inflation'], correct: 'B', explanation: 'Always compare to a rolling average rather than an absolute number.' },
+  ],
+  ta201: [
+    { question: 'In a strong uptrend, RSI typically oscillates between roughly:', options: ['30 and 70', '40 and 90', '10 and 60', '0 and 50'], correct: 'B', explanation: 'The band shifts upward; pullbacks bottom near 40, not 30.' },
+    { question: 'In a downtrend the RSI range shifts to approximately:', options: ['40–90', '10–60', '50–100', '30–70'], correct: 'B', explanation: 'Which band RSI respects is itself a trend identifier.' },
+    { question: 'A valid bearish divergence requires price to make a:', options: ['Lower high with RSI higher', 'Higher high with RSI making a lower high', 'New low', 'Gap'], correct: 'B', explanation: 'At meaningful swing points, reasonably close together in time.' },
+    { question: 'Divergences spanning six months are:', options: ['The strongest signal', 'Essentially noise', 'Required', 'Guaranteed reversals'], correct: 'B', explanation: 'Useful divergences occur between nearby swing points.' },
+    { question: 'An RSI failure swing occurs when RSI:', options: ['Reaches 100', 'Fails to reach overbought on a rally, then breaks its prior trough', 'Stays at 50', 'Gaps'], correct: 'B', explanation: 'A stronger signal than plain divergence.' },
+  ],
+  ta202: [
+    { question: 'The MACD histogram represents:', options: ['The MACD line itself', 'MACD minus signal - the rate of change of momentum', 'Volume', 'Price'], correct: 'B', explanation: 'It turns before the crossover does.' },
+    { question: 'The standard MACD settings 12/26/9 assume:', options: ['Weekly bars', 'Daily bars', 'Hourly bars', 'Tick data'], correct: 'B', explanation: 'Applying them to another timeframe changes their meaning.' },
+    { question: 'A bullish crossover above the zero line is:', options: ['Weaker than one below zero', 'Higher quality, because the trend is already up', 'Identical', 'A sell signal'], correct: 'B', explanation: 'Below zero it is usually just a bounce in a downtrend.' },
+    { question: 'Shrinking positive histogram bars while price grinds higher indicates:', options: ['Accelerating momentum', 'Decelerating momentum, with a crossover likely', 'A gap', 'Rising volume'], correct: 'B', explanation: 'Acting on the histogram gains sessions at the cost of more false signals.' },
+    { question: 'MACD performs worst in:', options: ['Strong trends', 'Ranging markets', 'High volume', 'Low volatility trends'], correct: 'B', explanation: 'It is a lagging trend-follower built from moving averages.' },
+  ],
+  ta203: [
+    { question: 'Bollinger bandwidth is calculated as:', options: ['(Upper − Lower) / Middle', 'Upper − Lower', 'Middle / Upper', 'Upper / Lower'], correct: 'A', explanation: 'Normalising by the middle band makes it comparable over time.' },
+    { question: 'A Bollinger squeeze predicts:', options: ['Direction', 'That volatility will expand, but not which way', 'A reversal', 'A gap down'], correct: 'B', explanation: 'Volatility is mean-reverting and clusters; direction is a separate question.' },
+    { question: '%B above 1.0 means price is:', options: ['At the middle band', 'Outside the upper band', 'Below the lower band', 'At the open'], correct: 'B', explanation: '%B locates price within (or beyond) the envelope.' },
+    { question: '"Walking the band" in a strong uptrend causes losses for traders who:', options: ['Buy the lower band', 'Sell every touch of the upper band as overbought', 'Use %B', 'Ignore bandwidth'], correct: 'B', explanation: 'Price can hug the upper band for the entire move.' },
+    { question: 'The ±2 standard deviation construction assumes normality, which fails because returns:', options: ['Are perfectly normal', 'Have much fatter tails than normal', 'Are always positive', 'Have zero variance'], correct: 'B', explanation: 'Extreme moves happen far more often than the model implies.' },
+  ],
+  ta204: [
+    { question: 'Fibonacci retracements have practical value mainly because of:', options: ['A natural law of markets', 'Coordination - enough participants draw the same levels', 'Exchange rules', 'Volume weighting'], correct: 'B', explanation: 'Clustered orders make the levels partially self-fulfilling.' },
+    { question: 'The 50% retracement level is:', options: ['A Fibonacci number', 'Not a Fibonacci number - simply the midpoint', 'The golden ratio', 'The 61.8% level'], correct: 'B', explanation: 'It works because halfway is intuitive to humans.' },
+    { question: 'A retracement level carries most information when it:', options: ['Stands alone', 'Coincides with a moving average, prior support and a volume node', 'Is drawn on a log chart', 'Is above the high'], correct: 'B', explanation: 'Confluence, not the ratio, is what makes a level a decision zone.' },
+    { question: 'A rally from $40 to $60 has its 61.8% retracement at approximately:', options: ['$47.64', '$52.36', '$50.00', '$44.00'], correct: 'A', explanation: '60 − 0.618 × 20 = $47.64.' },
+    { question: 'Drawing retracements from different swing points until one "works" is:', options: ['Best practice', 'Curve-fitting after the fact', 'Required', 'More accurate'], correct: 'B', explanation: 'Define the swing mechanically before looking at where levels land.' },
+  ],
+  ta205: [
+    { question: 'A head at $60 with a $50 neckline projects a measured move to:', options: ['$40', '$45', '$55', '$30'], correct: 'A', explanation: 'Neckline − (head − neckline) = 50 − 10 = $40.' },
+    { question: 'Bulkowski’s research found most chart patterns succeed roughly:', options: ['95% of the time', '50–70% of the time', '10% of the time', 'Always'], correct: 'B', explanation: 'Which is an argument for position sizing, not for abandoning them.' },
+    { question: 'A pullback to the breakout level after a pattern break is:', options: ['A failure', 'A statistically normal outcome', 'Impossible', 'A short signal'], correct: 'B', explanation: 'Throwbacks occur roughly half the time.' },
+    { question: 'A genuine head-and-shoulders top shows:', options: ['Rising volume on the right shoulder', 'Declining volume on the right shoulder and expansion on the neckline break', 'No volume change', 'A gap up'], correct: 'B', explanation: 'Without that signature the shape is coincidence.' },
+    { question: 'A rectangle from $30 to $36 breaking upward projects to:', options: ['$42', '$40', '$39', '$48'], correct: 'A', explanation: '36 + (36 − 30) = $42.' },
+  ],
+  ta301: [
+    { question: 'Which is a hard Elliott rule rather than a guideline?', options: ['Wave 3 is usually longest', 'Wave 4 never enters wave 1’s price territory', 'Wave 2 retraces 61.8%', 'Waves alternate'], correct: 'B', explanation: 'Breaking a rule invalidates the count entirely.' },
+    { question: 'Wave 2 may retrace at most:', options: ['50% of wave 1', '61.8% of wave 1', '100% of wave 1 (never more)', '161.8% of wave 1'], correct: 'C', explanation: 'Exceeding 100% invalidates the count.' },
+    { question: 'Wave 3 must never be:', options: ['The longest', 'The shortest of waves 1, 3 and 5', 'Positive', 'Extended'], correct: 'B', explanation: 'It is typically the longest and strongest.' },
+    { question: 'Wave 1 runs $20 → $30 and wave 2 bottoms at $24. A 161.8% wave 3 extension targets about:', options: ['$40.18', '$34.00', '$46.00', '$30.00'], correct: 'A', explanation: '24 + 1.618 × 10 = $40.18.' },
+    { question: 'The alternation guideline says that if wave 2 is a sharp correction, wave 4 tends to be:', options: ['Also sharp', 'Sideways', 'Nonexistent', 'Longer'], correct: 'B', explanation: 'Corrections alternate in character.' },
+  ],
+  ta302: [
+    { question: 'In Wyckoff accumulation, a secondary test is confirming when it occurs on:', options: ['Higher volume', 'Lower volume than the selling climax', 'Identical volume', 'No volume'], correct: 'B', explanation: 'Less supply at the same price is the point of the test.' },
+    { question: 'A Wyckoff spring is:', options: ['A rally out of the range', 'A false break below support that traps shorts and is quickly reclaimed', 'A gap up', 'A dividend event'], correct: 'B', explanation: 'It occurs on low volume and finds no supply.' },
+    { question: '"Effort versus result" refers to:', options: ['Price versus time', 'High volume producing little price movement, meaning effort is being absorbed', 'Volume versus open interest', 'Cost versus return'], correct: 'B', explanation: 'Arguably the most useful single Wyckoff idea.' },
+    { question: 'The best risk/reward entry in a Wyckoff accumulation is typically the:', options: ['Selling climax', 'Last point of support (a higher low on light volume)', 'Automatic rally', 'Preliminary support'], correct: 'B', explanation: 'It follows confirmation with a defined risk point.' },
+    { question: 'Wyckoff’s law of cause and effect says the width of the trading range determines:', options: ['The time to breakout', 'The size of the eventual move', 'The volume', 'The volatility'], correct: 'B', explanation: 'A larger cause produces a larger effect.' },
+  ],
+  ta303: [
+    { question: 'Unusual options activity is only meaningful when volume exceeds:', options: ['The 20-day average', 'Existing open interest at that strike', 'The stock’s volume', 'Implied volatility'], correct: 'B', explanation: 'That proves new positions were opened, not existing ones traded.' },
+    { question: 'A large call purchase may be:', options: ['Always bullish', 'A hedge against a short stock position or one leg of a spread', 'Always a spread', 'Always a mistake'], correct: 'B', explanation: 'Single-leg interpretation of multi-leg trades is the common error.' },
+    { question: 'When dealers are long gamma, their hedging:', options: ['Amplifies moves', 'Suppresses realised volatility by selling rallies and buying dips', 'Has no effect', 'Causes gaps'], correct: 'B', explanation: 'This is why some price zones act like magnets.' },
+    { question: 'When dealers are short gamma, hedging flows:', options: ['Stabilise price', 'Amplify moves in both directions', 'Stop trading', 'Only affect options'], correct: 'B', explanation: 'Hedging becomes pro-cyclical.' },
+    { question: 'Dark pool prints on their own carry:', options: ['Clear directional information', 'No directional information', 'Guaranteed institutional intent', 'Exchange-mandated signals'], correct: 'B', explanation: 'They are off-exchange venues for large orders, reported with a delay.' },
+  ],
+
+  // ── Macro ───────────────────────────────────────────────────────────────
+  ma101: [
+    { question: 'A company whose value sits in cash flows 10–20 years out is best described as:', options: ['Short duration', 'Long duration', 'Duration-neutral', 'Non-cyclical'], correct: 'B', explanation: 'Distant cash flows are hit hardest by discount-rate changes.' },
+    { question: 'Equities respond most directly to:', options: ['Nominal yields', 'Real yields (nominal minus expected inflation)', 'Dividend yields', 'Deposit rates'], correct: 'B', explanation: 'Rising nominal rates on strong growth can coexist with rising equities.' },
+    { question: 'The Fed model’s core flaw is that it compares:', options: ['Two nominal quantities', 'A real quantity (earnings) to a nominal one (bond yield)', 'Two real quantities', 'Prices to volumes'], correct: 'B', explanation: 'Earnings grow with inflation; a bond coupon does not.' },
+    { question: 'Raising the discount rate from 8% to 10% typically hurts which company more?', options: ['A mature cash generator', 'A pre-profit company with distant cash flows', 'Both equally', 'Neither'], correct: 'B', explanation: 'Duration determines the sensitivity.' },
+    { question: 'The first rate cut of a cycle has historically been:', options: ['A reliable buy signal', 'A poor buy signal, since cuts arrive because growth is deteriorating', 'Irrelevant', 'Always followed by a rally'], correct: 'B', explanation: 'What matters is whether earnings hold up.' },
+  ],
+  ma102: [
+    { question: 'Supercore inflation refers to services excluding:', options: ['Food only', 'Energy and housing', 'All goods', 'Rents only'], correct: 'B', explanation: 'It most closely tracks domestic labour costs.' },
+    { question: 'US CPI shelter captures market rents with a lag of roughly:', options: ['1 month', '9–12 months', '3 years', 'No lag'], correct: 'B', explanation: 'Leases reset annually, so the index trails real-time rents.' },
+    { question: 'Goods inflation differs from services inflation in being largely:', options: ['Domestic and wage-linked', 'Imported and supply-driven', 'Impossible to measure', 'Set by policy'], correct: 'B', explanation: 'Which is why services inflation determines whether an episode is transitory.' },
+    { question: 'With headline CPI 3.7% and a policy rate of 3.63%, the real policy rate is approximately:', options: ['+3.6%', '−0.1%', '+7.3%', '−3.7%'], correct: 'B', explanation: 'Barely restrictive, which constrains a central bank’s ability to cut.' },
+    { question: 'Reacting to headline inflation is a mistake because:', options: ['It is not published', 'Energy swings dominate it and are what policy cannot influence', 'It is always wrong', 'It excludes services'], correct: 'B', explanation: 'Core and supercore are the policy-relevant measures.' },
+  ],
+  ma103: [
+    { question: 'Early-cycle leadership typically comes from:', options: ['Staples and utilities', 'Consumer discretionary, financials, real estate and small caps', 'Energy and materials', 'Healthcare'], correct: 'B', explanation: 'Highest beta, largest gains, and hardest to buy because news is still bad.' },
+    { question: 'Late-cycle leadership typically comes from:', options: ['Small caps', 'Energy, materials and quality compounders', 'Real estate', 'Discretionary'], correct: 'B', explanation: 'Inflation is rising and growth is peaking.' },
+    { question: 'Equities typically lead the real economy by about:', options: ['No lead', '6–9 months', '3 years', '1 week'], correct: 'B', explanation: 'By the time a recession is declared, the market has usually bottomed.' },
+    { question: 'Waiting for official recession confirmation before buying is:', options: ['Prudent', 'A reliably losing strategy, since the NBER dates with a long lag', 'Required', 'Neutral'], correct: 'B', explanation: 'The bottom is normally well behind you by then.' },
+    { question: 'The sector rotation model is best used as:', options: ['A mechanical rule', 'A prior, since idiosyncratic drivers can dominate for years', 'A timing signal', 'A valuation method'], correct: 'B', explanation: 'Pandemics, AI capex booms and commodity shocks override the textbook sequence.' },
+  ],
+  ma201: [
+    { question: 'Which curve measure does academic work generally favour for recession prediction?', options: ['2s10s', '3m10y', '5s30s', '2s5s'], correct: 'B', explanation: 'It is the New York Fed’s preferred input.' },
+    { question: 'Inversion damages banks specifically because they:', options: ['Hold equities', 'Borrow short and lend long, so an inverted curve compresses net interest margin', 'Pay dividends', 'Are regulated'], correct: 'B', explanation: 'It tightens credit supply directly, not just as a signal.' },
+    { question: 'The typical lag from curve inversion to recession is:', options: ['1–2 months', '12–24 months', '5 years', 'Simultaneous'], correct: 'B', explanation: 'Long and variable, which is why it is a poor timing tool.' },
+    { question: 'The curve usually re-steepens:', options: ['After the recession ends', 'Before the recession begins, as the central bank starts cutting', 'Never', 'Only in expansions'], correct: 'B', explanation: 'Re-steepening after a long inversion has often been the final warning, not the all-clear.' },
+    { question: 'A 2y at 4.25% and 10y at 4.70% gives a spread of:', options: ['+45bps, a flat late-cycle shape', '−45bps, inverted', '+450bps, steep', 'Zero'], correct: 'A', explanation: 'Technically positive but historically flat.' },
+  ],
+  ma202: [
+    { question: 'Australian monetary policy transmits faster than US policy mainly because:', options: ['The RBA meets more often', 'Most Australian mortgages are variable or short-fixed', 'Australia has fewer banks', 'Of the exchange rate'], correct: 'B', explanation: 'US 30-year fixed mortgages insulate borrowers entirely.' },
+    { question: 'A US homeowner who fixed at 3% in 2021 is:', options: ['Fully exposed to later hikes', 'Insulated from later hikes', 'Forced to refinance', 'Paying variable'], correct: 'B', explanation: 'Which is why US policy transmission has been unusually slow.' },
+    { question: 'A 100bps rise on a $700,000 variable mortgage removes roughly how much annual cash flow?', options: ['$700', '$7,000', '$70,000', '$70'], correct: 'B', explanation: 'A direct and immediate hit to discretionary spending.' },
+    { question: 'Rising rates affect Australian banks in which two opposing ways?', options: ['Wider NIM but higher arrears and provisioning', 'Lower NIM and lower arrears', 'No effect either way', 'Higher fees only'], correct: 'A', explanation: 'The two levers are similar in size.' },
+    { question: 'The AUD feeds into Australian inflation primarily through:', options: ['Wages', 'Import prices via the terms of trade', 'Rents', 'Taxes'], correct: 'B', explanation: 'A commodity currency channel with no direct US analogue.' },
+  ],
+  ma203: [
+    { question: 'Translation exposure differs from transaction exposure in that only transaction exposure:', options: ['Affects reported earnings', 'Changes the underlying economics', 'Is disclosed', 'Applies to miners'], correct: 'B', explanation: 'Translation is an accounting conversion; transaction is real cash mismatch.' },
+    { question: 'A company earning 60% of revenue in USD with 80% of costs in AUD benefits from:', options: ['A rising AUD', 'A falling AUD', 'A stable AUD', 'Neither'], correct: 'B', explanation: 'AUD revenue translates higher while costs are unchanged.' },
+    { question: 'The AUD is described as procyclical because it:', options: ['Falls with global growth', 'Rises with global growth, risk appetite and commodity prices', 'Is pegged', 'Tracks gold only'], correct: 'B', explanation: 'Which makes unhedged foreign assets a natural domestic hedge.' },
+    { question: 'The carry trade persists despite interest rate parity because:', options: ['Parity is enforced', 'High-yielding currencies frequently fail to depreciate as theory predicts', 'Carry is risk-free', 'Central banks fund it'], correct: 'B', explanation: 'And it unwinds violently, which is why the AUD falls fastest in stress.' },
+    { question: 'A company with a three-year hedge book means today’s currency move affects:', options: ['This half’s earnings', 'Earnings several years out', 'Nothing ever', 'Only the balance sheet'], correct: 'B', explanation: 'Always check the hedge horizon before modelling FX impact.' },
+  ],
+  ma204: [
+    { question: 'A supply-driven commodity price rise is:', options: ['Bullish for equities broadly', 'Stagflationary - raising inflation while reducing growth', 'Neutral', 'Deflationary'], correct: 'B', explanation: 'It is a tax on consumers and a margin squeeze on users.' },
+    { question: 'Oil rising, copper rising and equities rising together suggests the driver is:', options: ['Supply', 'Demand', 'Currency', 'Policy'], correct: 'B', explanation: 'Broad strength across cyclical commodities means growth.' },
+    { question: 'Oil rising while copper falls and yields rise on inflation expectations suggests:', options: ['A demand shock', 'A supply shock', 'A rate cut', 'A recession has ended'], correct: 'B', explanation: 'The divergence between energy and industrial metals is the tell.' },
+    { question: 'Australia’s terms of trade in a commodity supply shock typically:', options: ['Deteriorate', 'Improve, since it is a net exporter', 'Are unchanged', 'Become negative'], correct: 'B', explanation: 'The ASX often outperforms in episodes that hurt importing economies.' },
+    { question: 'Higher commodity prices are good for the ASX only if:', options: ['They are supply-driven', 'Australia exports the commodity in question', 'The AUD falls', 'Rates are cut'], correct: 'B', explanation: 'Higher oil, which Australia largely imports, is not the same as higher iron ore.' },
+  ],
+  ma301: [
+    { question: 'A stronger USD tightens global financial conditions primarily by:', options: ['Lowering US rates', 'Raising the local-currency cost of servicing dollar debt for foreign borrowers', 'Increasing exports', 'Reducing inflation'], correct: 'B', explanation: 'It also pressures dollar-priced commodities and pulls capital from EM.' },
+    { question: 'Which market shows global dollar funding stress first?', options: ['Equities', 'Cross-currency basis and FX swap spreads', 'Commodities', 'Real estate'], correct: 'B', explanation: 'This plumbing moved first in March 2020.' },
+    { question: 'Triffin’s dilemma states that to supply the world with reserve dollars, the US must:', options: ['Run surpluses', 'Run persistent deficits, which erodes confidence over time', 'Fix the exchange rate', 'Raise rates'], correct: 'B', explanation: 'The reserve role and fiscal discipline are in tension.' },
+    { question: 'An EM corporate with USD debt and local-currency revenue faces what when the USD strengthens 12%?', options: ['A 12% fall in debt service', 'A 12% real rise in debt service with no operational change', 'No effect', 'A currency gain'], correct: 'B', explanation: 'Defaults, capital flight and currency crisis follow in the standard sequence.' },
+    { question: 'The dollar is best thought of as:', options: ['Just an FX rate', 'A global financial condition', 'A commodity', 'An equity index'], correct: 'B', explanation: 'Roughly half of global trade and much EM debt is dollar-denominated.' },
+  ],
+  ma302: [
+    { question: 'QE primarily works through:', options: ['Printing circulating currency', 'Removing duration and the portfolio balance channel', 'Direct household transfers', 'Tax cuts'], correct: 'B', explanation: 'Reserves sit at the central bank; they are not currency in circulation.' },
+    { question: '2009 QE was not inflationary largely because:', options: ['It was too small', 'Reserves sat idle as banks repaired balance sheets and lending did not expand', 'Rates were high', 'It was reversed quickly'], correct: 'B', explanation: 'Broad money growth stayed subdued.' },
+    { question: '2020 was different because QE ran alongside:', options: ['Higher rates', 'Large fiscal transfers directly to households', 'A stronger dollar', 'Bank failures'], correct: 'B', explanation: 'That created spendable broad money against constrained supply.' },
+    { question: 'Predicting inflation from central bank balance sheet size alone fails because what matters is:', options: ['Reserve levels', 'Broad money growth and its velocity', 'Bond duration', 'Equity prices'], correct: 'B', explanation: 'Neither follows mechanically from reserves.' },
+    { question: 'QT is not simply QE in reverse because it is:', options: ['Faster and well telegraphed', 'Slower, less telegraphed and far less studied', 'Identical', 'Illegal'], correct: 'B', explanation: 'It also removes a price-insensitive buyer when issuance is rising.' },
+  ],
+  ma303: [
+    { question: 'In a top-down framework, macro should primarily determine:', options: ['Which individual stocks to own', 'Portfolio tilt, gross exposure and scenario weights', 'Dividend policy', 'Accounting method'], correct: 'B', explanation: 'Macro tilts a portfolio; it does not select it.' },
+    { question: 'Which sector combination has low cyclicality but high rate duration?', options: ['Energy and materials', 'Utilities and REITs', 'Banks and industrials', 'Discretionary and tech'], correct: 'B', explanation: 'Stable earnings, bond-proxy multiples.' },
+    { question: 'Banks are unusual because their rate duration is:', options: ['Very high', 'Negative - they benefit from higher rates', 'Zero', 'Undefined'], correct: 'B', explanation: 'A wider spread offsets the multiple compression other sectors suffer.' },
+    { question: 'A countercyclical equity risk premium means it:', options: ['Narrows in stress', 'Widens as conditions deteriorate', 'Is constant', 'Tracks the dividend yield'], correct: 'B', explanation: 'Which is why cheap stocks keep derating in a downturn.' },
+    { question: 'Investors who trade a macro view instead of owning businesses have historically:', options: ['Outperformed', 'Underperformed those who owned good businesses through the cycle', 'Matched the index', 'Avoided all drawdowns'], correct: 'B', explanation: 'Which is why a well-built macro overlay is deliberately bounded.' },
+  ],
+
+  // ── ASX ─────────────────────────────────────────────────────────────────
+  asx101: [
+    { question: 'Banks and miners share a common underlying driver in that Chinese demand supports:', options: ['Only mining', 'Commodity prices, terms of trade, employment and therefore mortgage credit quality', 'Only the currency', 'Nothing in common'], correct: 'B', explanation: 'The two halves of the index are far more correlated than they appear.' },
+    { question: 'Technology is roughly what share of the ASX 200 versus the S&P 500?', options: ['3% vs 30%', '30% vs 3%', '15% vs 15%', '0% vs 50%'], correct: 'A', explanation: 'This single gap explains most relative performance differences.' },
+    { question: 'An investor holding an ASX 200 index fund plus the four majors individually is:', options: ['Well diversified', 'Heavily concentrated in Australian housing credit', 'Market neutral', 'Hedged'], correct: 'B', explanation: 'True exposure can exceed 40% of the portfolio.' },
+    { question: 'Index concentration is typically highest:', options: ['In a crash', 'When the leading sector is most extended', 'At random', 'In January'], correct: 'B', explanation: 'Weights drift with performance.' },
+    { question: 'For an Australian investor, genuine diversification usually requires:', options: ['More ASX names', 'Deliberate international exposure', 'More banks', 'Higher yield stocks'], correct: 'B', explanation: 'Which then reintroduces currency and franking considerations.' },
+  ],
+  asx102: [
+    { question: 'The 45-day rule requires shares to be held at risk for at least 45 days:', options: ['After the dividend only', 'Around the ex-dividend date, excluding acquisition and disposal days', 'Before listing', 'Each year'], correct: 'B', explanation: 'It exists to prevent dividend stripping.' },
+    { question: 'The small-shareholder exemption to the 45-day rule applies when annual franking credits are under:', options: ['$500', '$5,000', '$50,000', 'There is no exemption'], correct: 'B', explanation: 'Below that threshold the holding period test does not apply.' },
+    { question: 'Hedging a position with derivatives around the ex-date can:', options: ['Increase the credit', 'Void the franking entitlement, since shares must be held "at risk"', 'Have no effect', 'Double the refund'], correct: 'B', explanation: '"At risk" is a substantive requirement.' },
+    { question: 'Franking credits are worth the most to:', options: ['Foreign investors', 'Super funds in pension phase at a 0% tax rate', 'Top-rate individuals', 'Companies'], correct: 'B', explanation: 'They receive the full credit as a cash refund.' },
+    { question: 'Comparing an ASX yield to a US yield without grossing up:', options: ['Is correct', 'Understates the ASX yield for an investor who can claim credits', 'Overstates it', 'Is required'], correct: 'B', explanation: 'But grossing up for an investor who cannot claim is the opposite error.' },
+  ],
+  asx103: [
+    { question: 'In a balanced commodity market, price sits near:', options: ['The lowest producer’s cost', 'The marginal producer’s cost', 'The average cost', 'Zero'], correct: 'B', explanation: 'The last tonne needed to meet demand sets the clearing price.' },
+    { question: 'Iron ore at $75/t with a $40/t producer means that producer:', options: ['Is losing money', 'Still earns $35/t while higher-cost producers curtail', 'Must shut', 'Breaks even'], correct: 'B', explanation: 'Curtailment by high-cost producers is what stops the price falling further.' },
+    { question: 'A falling AUD improves an Australian producer’s cost-curve position because:', options: ['Costs rise', 'It earns USD revenue against AUD costs', 'Volumes rise', 'Taxes fall'], correct: 'B', explanation: 'No operational change is required.' },
+    { question: 'A fourth-quartile cost producer is best described as:', options: ['A defensive investment', 'An option on the commodity price', 'A bond proxy', 'A compounder'], correct: 'B', explanation: 'Spectacular at the peak, bankrupt in the trough.' },
+    { question: 'The right valuation tools for a miner are:', options: ['P/E and PEG', 'Price-to-NAV and cost-curve position', 'EV/Sales only', 'Dividend yield only'], correct: 'B', explanation: 'P/E is systematically misleading across a commodity cycle.' },
+  ],
+  asx104: [
+    { question: 'Deposit beta measures:', options: ['Bank share price volatility', 'The share of a rate rise passed through to depositors', 'Loan growth', 'Capital adequacy'], correct: 'B', explanation: 'It determines how long a NIM benefit lasts.' },
+    { question: 'The major Australian banks’ cost-to-income ratios typically run in the:', options: ['Low-to-mid 40s%', 'Low 20s%', '70s%', '90s%'], correct: 'A', explanation: 'Cost discipline is one of four earnings levers.' },
+    { question: 'APRA’s "unquestionably strong" CET1 benchmark for the majors is:', options: ['4.5%', '10.5%', '20%', '2%'], correct: 'B', explanation: 'Capital above that level is what funds buybacks and dividends.' },
+    { question: 'The swing factor in bank earnings through a cycle is:', options: ['Fee income', 'The bad and doubtful debts charge', 'Branch count', 'Deposit volume'], correct: 'B', explanation: 'Near zero for years, then large enough to wipe out profit growth.' },
+    { question: 'On a $900B loan book, a 10bps rise in the loan loss charge costs roughly:', options: ['$9M', '$90M', '$900M', '$9B'], correct: 'C', explanation: 'The same size as a 10bps NIM gain - the two levers offset.' },
+  ],
+  asx105: [
+    { question: 'FFO is calculated as:', options: ['Net income + depreciation − gains on property sales', 'Net income only', 'Revenue − costs', 'NTA / shares'], correct: 'A', explanation: 'It strips non-cash revaluations from REIT earnings.' },
+    { question: 'AFFO further deducts:', options: ['Interest', 'Maintenance capex and straight-lining of rent', 'Tax', 'Depreciation'], correct: 'B', explanation: 'AFFO is what actually funds the distribution.' },
+    { question: 'A rise in cap rates from 5.0% to 6.0% cuts property value by approximately:', options: ['1%', '17%', '50%', '5%'], correct: 'B', explanation: '1 − (5/6) ≈ 17%, with no change to the rent roll.' },
+    { question: 'A REIT can breach a gearing covenant without borrowing because:', options: ['Rates rise', 'Falling property values raise gearing mechanically', 'Tenants leave', 'Distributions are paid'], correct: 'B', explanation: 'Which is when dilutive equity raises happen.' },
+    { question: 'WALE measures:', options: ['Weighted average lease expiry - income durability', 'Weighted asset leverage', 'Wholesale average lending', 'Warehouse allocation'], correct: 'A', explanation: 'A 7-year WALE with government tenants behaves like a bond.' },
+  ],
+  asx106: [
+    { question: 'A workable liquidity rule of thumb for small caps is to hold no more than:', options: ['1% of shares outstanding', '10–20% of average daily volume', '50% of the free float', 'Any amount'], correct: 'B', explanation: 'So a full exit takes days rather than months.' },
+    { question: 'A 2% bid-ask spread costs approximately what round-trip?', options: ['0.5%', '2%', '10%', 'Nothing'], correct: 'B', explanation: 'Before any market impact - a real hurdle against a ~15% expected return.' },
+    { question: 'The classic small-cap re-rating catalyst is:', options: ['A dividend increase', 'Index inclusion forcing passive buying', 'A share split', 'A name change'], correct: 'B', explanation: 'Which is also often the point at which to reduce.' },
+    { question: 'A profitable niche company with 40% insider ownership and no debt differs from a pre-revenue explorer because it:', options: ['Has more analysts', 'Cannot be forced to dilute you', 'Pays higher dividends', 'Is in the index'], correct: 'B', explanation: 'Self-funding is the key structural protection.' },
+    { question: 'In small caps, position size should be set primarily by:', options: ['Conviction', 'Liquidity first, conviction second', 'Market cap', 'Sector'], correct: 'B', explanation: 'Conviction is worthless if you cannot exit.' },
+  ],
+
+  // ── Valuation ───────────────────────────────────────────────────────────
+  vm101: [
+    { question: 'A defensible peer set is screened on:', options: ['GICS sector code alone', 'Growth, margins, capital intensity, end market and geography', 'Market cap only', 'Share price'], correct: 'B', explanation: 'Two "software" companies growing 15% and 45% are not comparable.' },
+    { question: 'With six or more peers, the professional approach is to:', options: ['Take a simple average', 'Regress the multiple against its driver and read the residual', 'Use the maximum', 'Use the minimum'], correct: 'B', explanation: 'It gives a justified multiple for the subject’s own fundamentals.' },
+    { question: 'Peers average 18× P/E; regressing gives P/E ≈ 9 + 0.75 × growth%. A 12%-grower’s justified multiple is:', options: ['18×', '21×', '9×', '12×'], correct: 'A', explanation: '9 + 0.75 × 12 = 18×.' },
+    { question: 'A subject at 14× against a peer range of 9–26× tells you:', options: ['It is clearly cheap', 'Very little without adjusting for fundamentals', 'It is expensive', 'The sector is overvalued'], correct: 'B', explanation: 'Report quartiles, not just the median.' },
+    { question: 'Relative valuation is fundamentally silent on:', options: ['Peer comparison', 'Absolute value', 'Growth rates', 'Margins'], correct: 'B', explanation: 'If the whole group is mispriced, "cheap versus peers" means nothing.' },
+  ],
+  vm102: [
+    { question: 'A bank earning 13% ROE with a 70% payout can sustainably grow at:', options: ['13%', '3.9%', '9.1%', '0.7%'], correct: 'B', explanation: '13% × (1 − 0.70) = 3.9%.' },
+    { question: 'With Ke = 9% and g = 4%, moving g to 5% raises the DDM value by about:', options: ['1%', '25%', '10%', '100%'], correct: 'B', explanation: 'The denominator falls from 5% to 4% - a 25% increase in value.' },
+    { question: 'The DDM is the right tool for:', options: ['A low-payout compounder', 'Mature utilities, regulated infrastructure and mature banks', 'Pre-revenue biotech', 'Cyclical miners'], correct: 'B', explanation: 'Stable growth below the discount rate, with a meaningful payout.' },
+    { question: 'If management guides to 8% growth on a 70% payout with 13% ROE, then:', options: ['The guidance is consistent', 'Either ROE must rise or capital must be raised', 'The dividend must be cut to zero', 'Nothing follows'], correct: 'B', explanation: 'The sustainable growth identity makes guidance falsifiable.' },
+    { question: 'A multi-stage DDM handles transition by:', options: ['Ignoring the transition', 'Modelling dividends explicitly through it, then applying Gordon to the terminal stage', 'Using a single rate', 'Capping growth at zero'], correct: 'B', explanation: 'Gordon only applies once growth is genuinely stable.' },
+  ],
+  vm103: [
+    { question: 'For asset-heavy businesses, a more honest alternative to EV/EBITDA is:', options: ['EV/Sales', 'EV/EBIT or EV/(EBITDA − capex)', 'P/B', 'Dividend yield'], correct: 'B', explanation: 'Depreciation is a real cost when assets must be replaced.' },
+    { question: 'Two companies at 10× EV/EBITDA on $500M EBITDA, spending $100M and $420M capex, trade on EV/(EBITDA − capex) of:', options: ['12.5× and 62.5×', '10× and 10×', '5× and 20×', '2× and 8×'], correct: 'A', explanation: 'The identical headline multiple concealed entirely different economics.' },
+    { question: 'Common "adjusted EBITDA" add-backs that deserve scrutiny include:', options: ['Interest and tax', 'Recurring restructuring, stock-based compensation and estimated synergies', 'Revenue', 'Depreciation'], correct: 'B', explanation: 'Always rebuild EBITDA from reported figures.' },
+    { question: 'EBITDA also ignores:', options: ['Interest', 'Working capital consumption', 'Tax', 'All of these are excluded by design'], correct: 'B', explanation: 'A fast grower with a 90-day cash cycle burns cash EBITDA never shows.' },
+    { question: 'EV/EBITDA genuinely excels when comparing companies with different:', options: ['Business models', 'Leverage and tax domiciles', 'Currencies only', 'Share counts'], correct: 'B', explanation: 'Which is why M&A and LBO analysis default to it.' },
+  ],
+  vm104: [
+    { question: 'PEG’s most significant omission is:', options: ['Growth', 'Risk', 'Earnings', 'Price'], correct: 'B', explanation: 'A staple and a single-product biotech at PEG 1.0 are not equivalently priced.' },
+    { question: 'PEG becomes unstable and misleading below growth of roughly:', options: ['5%', '20%', '30%', '50%'], correct: 'A', explanation: 'The ratio explodes for perfectly sound low-growth businesses.' },
+    { question: 'PEGY is calculated as:', options: ['P/E / (growth + dividend yield)', 'P/E × growth', 'P/E / yield', 'growth / P/E'], correct: 'A', explanation: 'The sensible extension for income-paying companies.' },
+    { question: 'A 12× P/E with 4% growth and 5% yield has a PEGY of:', options: ['3.0', '1.33', '2.4', '0.8'], correct: 'B', explanation: '12 / (4 + 5) = 1.33 - a very different picture from its 3.0 PEG.' },
+    { question: 'Company A (30× P/E, 30% acquisition-driven growth, ROIC below WACC) versus B (20× P/E, 15% organic growth, 25% ROIC):', options: ['A is better on PEG and therefore better', 'B is the better business despite the worse PEG', 'They are identical', 'Neither is investable'], correct: 'B', explanation: 'PEG treats acquired and organic growth identically; they are not.' },
+  ],
+  vm201: [
+    { question: 'The three sources of LBO return are debt paydown, EBITDA growth and:', options: ['Dividend yield', 'Multiple expansion', 'Tax refunds', 'Share issuance'], correct: 'B', explanation: 'Sponsors typically underwrite assuming none of the third.' },
+    { question: 'Enter at 10× on $100M EBITDA with $600M debt and $400M equity; exit five years later at 10× on $130M EBITDA with $350M debt remaining. Equity value is:', options: ['$1,300M', '$950M', '$700M', '$400M'], correct: 'B', explanation: '1,300 − 350 = $950M.' },
+    { question: 'That deal’s MOIC is approximately:', options: ['1.5×', '2.4×', '3.3×', '0.9×'], correct: 'B', explanation: '$950M / $400M = 2.4×, roughly a 19% IRR over five years.' },
+    { question: 'A deal that only works with multiple expansion is:', options: ['A high-quality LBO', 'A bet on the market rather than the business', 'Standard practice', 'Risk-free'], correct: 'B', explanation: 'Which is why sponsors assume flat or lower exit multiples.' },
+    { question: 'For a public-market investor, an LBO model is most useful as:', options: ['A growth forecast', 'A floor valuation and takeover-candidate test', 'A dividend model', 'A macro tool'], correct: 'B', explanation: 'It identifies the price a financial buyer could pay and still earn ~20% IRR.' },
+  ],
+  vm202: [
+    { question: 'Discount rates used for gold NAV models are commonly:', options: ['3–4% real', '8–10% real', '15–20% real', '0%'], correct: 'B', explanation: 'Higher for single-asset or frontier-jurisdiction projects.' },
+    { question: 'Which resource category belongs in a base-case NAV?', options: ['Inferred resources', 'Proven and probable reserves', 'Exploration targets', 'All resources equally'], correct: 'B', explanation: 'Inferred resources should be heavily risk-weighted or excluded.' },
+    { question: 'Producing gold miners have historically traded around:', options: ['0.2–0.4× NAV', '0.8–1.2× NAV', '3–4× NAV', '10× NAV'], correct: 'B', explanation: 'Developers trade at 0.3–0.6× reflecting funding and construction risk.' },
+    { question: 'A developer with $1.2B NAV trading at $480M is on:', options: ['0.4× NAV', '1.2× NAV', '2.5× NAV', '0.9× NAV'], correct: 'A', explanation: 'Re-rating to 0.9× on reaching production implies $1.08B.' },
+    { question: 'Using spot commodity prices across a 20-year mine life is:', options: ['Best practice', 'An extrapolation, not a valuation', 'Required by IFRS', 'Conservative'], correct: 'B', explanation: 'Price decks should fade toward a long-run consensus.' },
+  ],
+  vm203: [
+    { question: 'The crux question in an investment thesis is:', options: ['What does it do?', 'Why is it mispriced?', 'What is the dividend?', 'Who is the CEO?'], correct: 'B', explanation: '"It looks cheap" is an observation thousands of others have also made.' },
+    { question: 'Without a catalyst, an undervalued stock can:', options: ['Always re-rate within a year', 'Stay cheap indefinitely', 'Be delisted', 'Pay a special dividend'], correct: 'B', explanation: 'Something must convert value into price.' },
+    { question: 'Which is a genuine falsifier?', options: ['"The story changes"', '"Gross margin falls below 38% for two consecutive quarters"', '"Sentiment turns"', '"It stops working"'], correct: 'B', explanation: 'Specific, observable and pre-committed.' },
+    { question: 'A pre-mortem asks you to write, before buying:', options: ['The bull case', 'Why the position lost 40%', 'The dividend forecast', 'The sell note'], correct: 'B', explanation: 'If you cannot write it convincingly, you do not understand the risks yet.' },
+    { question: 'A thesis that no observable outcome could disprove means you are:', options: ['Highly confident', 'Believing rather than analysing', 'Well diversified', 'Using a DCF'], correct: 'B', explanation: 'Falsifiability is what makes it a thesis rather than a position.' },
+  ],
+}
