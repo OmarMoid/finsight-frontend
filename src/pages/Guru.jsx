@@ -45,12 +45,12 @@ function renderMarkdown(text) {
   return out
 }
 
-const OFFLINE_TEXT = `Guru requires an Anthropic API key to activate.
+const OFFLINE_TEXT = `Guru needs a free AI key to activate.
 
 To enable Guru:
-1. Get your API key at console.anthropic.com
+1. Get a free key at console.groq.com (or aistudio.google.com for Gemini)
 2. Open the .env file in your project root
-3. Set ANTHROPIC_API_KEY=your-actual-key
+3. Set GROQ_API_KEY=your-key (or GEMINI_API_KEY=your-key)
 4. Restart the backend: python main.py
 
 Once configured, Guru will have access to live market data from 8 integrated APIs and deliver institutional-grade analysis for ASX and US markets.
@@ -77,7 +77,7 @@ export default function Guru() {
   const endRef = useRef(null)
   const taRef = useRef(null)
 
-  useEffect(() => { healthAPI.get().then((r) => setHasKey(!!r?.has_anthropic_key)) }, [])
+  useEffect(() => { healthAPI.get().then((r) => setHasKey(!!(r?.has_ai_key ?? r?.has_anthropic_key))) }, [])
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [guruHistory, guruIsTyping])
 
   const online = hasKey === true

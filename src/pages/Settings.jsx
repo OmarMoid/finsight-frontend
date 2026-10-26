@@ -103,7 +103,7 @@ export default function Settings() {
   }, [])
   const clockPreview = formatTimeIn(now, settings.timezone, { seconds: true })
 
-  useEffect(() => { healthAPI.get().then((r) => setHasKey(!!r?.has_anthropic_key)) }, [])
+  useEffect(() => { healthAPI.get().then((r) => setHasKey(!!(r?.has_ai_key ?? r?.has_anthropic_key))) }, [])
 
   // Follow-OS preference watcher.
   useEffect(() => {
@@ -311,10 +311,10 @@ export default function Settings() {
             <div className="card mt-3" style={{ background: hasKey ? 'color-mix(in srgb, var(--positive) 8%, var(--bg-card))' : 'color-mix(in srgb, var(--negative) 8%, var(--bg-card))', borderColor: hasKey ? 'var(--positive)' : 'var(--negative)' }}>
               {hasKey ? <div className="text-sm font-semibold" style={{ color: 'var(--positive)' }}>Guru is active and ready</div> : (
                 <>
-                  <div className="text-sm font-semibold mb-2" style={{ color: 'var(--negative)' }}>Anthropic API key not configured</div>
+                  <div className="text-sm font-semibold mb-2" style={{ color: 'var(--negative)' }}>AI key not configured (Groq/Gemini free)</div>
                   <ol className="text-xs text-[var(--text-secondary)] space-y-1 list-decimal list-inside">
-                    <li>Get key at <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)]">console.anthropic.com</a></li>
-                    <li>Add to .env: <code className="font-mono">ANTHROPIC_API_KEY=...</code></li>
+                    <li>Get key at <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)]">console.groq.com</a></li>
+                    <li>Add to .env: <code className="font-mono">GROQ_API_KEY=...</code></li>
                     <li>Restart backend</li>
                   </ol>
                 </>
