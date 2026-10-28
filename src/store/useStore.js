@@ -35,6 +35,18 @@ const DEFAULT_SETTINGS = {
   timezone: 'auto',
 }
 
+// Oldest chats drop off past this, keeping localStorage well under its quota.
+const MAX_GURU_CHATS = 50
+
+// A chat is named after its opening question, trimmed to fit the history list.
+const chatTitle = (messages) => {
+  const first = messages.find((m) => m.role === 'user')?.content?.trim() || 'New chat'
+  return first.length > 60 ? `${first.slice(0, 57).trimEnd()}…` : first
+}
+
+const syncChat = (chats, id, messages) =>
+  chats.map((c) => (c.id === id ? { ...c, messages, updatedAt: Date.now() } : c))
+
 const useStore = create(
   persist(
     (set, get) => ({
@@ -128,16 +140,50 @@ const useStore = create(
         })),
 
       // ── GURU ───────────────────────────────────────────────────────────
+      // Every conversation is kept in guruChats (persisted). guruHistory is
+      // the open chat's messages, mirrored into its guruChats entry on each
+      // change so the history list is always current.
+      guruChats: [],
+      activeGuruChatId: null,
       guruHistory: [],
       addGuruMessage: (msg) =>
-        set((s) => ({ guruHistory: [...s.guruHistory, msg] })),
+        set((s) => {
+          const messages = [...s.guruHistory, msg]
+          let id = s.activeGuruChatId
+          let chats = s.guruChats
+          const now = Date.now()
+          if (!id || !chats.some((c) => c.id === id)) {
+            id = `c${now}${Math.random().toString(36).slice(2, 6)}`
+            chats = [{ id, title: chatTitle(messages), createdAt: now, updatedAt: now, messages }, ...chats].slice(0, MAX_GURU_CHATS)
+          } else {
+            chats = chats.map((c) => (c.id === id ? { ...c, messages, updatedAt: now } : c))
+          }
+          return { guruHistory: messages, guruChats: chats, activeGuruChatId: id }
+        }),
       updateGuruMessage: (index, patch) =>
-        set((s) => ({
-          guruHistory: s.guruHistory.map((m, i) => (i === index ? { ...m, ...patch } : m)),
-        })),
+        set((s) => {
+          const messages = s.guruHistory.map((m, i) => (i === index ? { ...m, ...patch } : m))
+          return { guruHistory: messages, guruChats: syncChat(s.guruChats, s.activeGuruChatId, messages) }
+        }),
       removeGuruMessage: (index) =>
-        set((s) => ({ guruHistory: s.guruHistory.filter((_, i) => i !== index) })),
-      clearGuruHistory: () => set({ guruHistory: [] }),
+        set((s) => {
+          const messages = s.guruHistory.filter((_, i) => i !== index)
+          return { guruHistory: messages, guruChats: syncChat(s.guruChats, s.activeGuruChatId, messages) }
+        }),
+      newGuruChat: () => set({ activeGuruChatId: null, guruHistory: [] }),
+      openGuruChat: (id) =>
+        set((s) => {
+          const chat = s.guruChats.find((c) => c.id === id)
+          return chat ? { activeGuruChatId: id, guruHistory: chat.messages } : {}
+        }),
+      renameGuruChat: (id, title) =>
+        set((s) => ({ guruChats: s.guruChats.map((c) => (c.id === id ? { ...c, title } : c)) })),
+      deleteGuruChat: (id) =>
+        set((s) => ({
+          guruChats: s.guruChats.filter((c) => c.id !== id),
+          ...(s.activeGuruChatId === id ? { activeGuruChatId: null, guruHistory: [] } : {}),
+        })),
+      clearGuruHistory: () => set({ guruChats: [], activeGuruChatId: null, guruHistory: [] }),
       guruIsTyping: false,
       setGuruTyping: (val) => set({ guruIsTyping: val }),
 
@@ -181,6 +227,9 @@ const useStore = create(
         learningProgress: state.learningProgress,
         savedScenarios: state.savedScenarios,
         savedAnalyses: state.savedAnalyses,
+        guruChats: state.guruChats,
+        activeGuruChatId: state.activeGuruChatId,
+        guruHistory: state.guruHistory,
         recentlyViewed: state.recentlyViewed,
         lastVisitedPage: state.lastVisitedPage,
       }),

@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import {
-  ArrowUp, Copy, Check, Bookmark, BookmarkPlus, ThumbsUp, ThumbsDown, Trash2, X,
+  ArrowUp, Copy, Check, Bookmark, BookmarkPlus, ThumbsUp, ThumbsDown, Trash2, X, History, SquarePen,
   AlertTriangle, RotateCcw, Sparkles, TrendingUp, Globe2, Scale, Coins, ShieldAlert, BarChart3,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { guruAPI, healthAPI } from '../utils/api'
 import useStore from '../store/useStore'
 import Markdown from '../components/common/Markdown'
+import ChatHistory from '../components/guru/ChatHistory'
 
 const SUGGESTED = [
   { icon: BarChart3, label: 'Single stock', prompt: 'Analyse AAPL - complete fundamental, valuation and technical breakdown, give me a buy/sell/hold' },
@@ -31,7 +32,8 @@ export default function Guru() {
   const addGuruMessage = useStore((s) => s.addGuruMessage)
   const updateGuruMessage = useStore((s) => s.updateGuruMessage)
   const removeGuruMessage = useStore((s) => s.removeGuruMessage)
-  const clearGuruHistory = useStore((s) => s.clearGuruHistory)
+  const newGuruChat = useStore((s) => s.newGuruChat)
+  const guruChatCount = useStore((s) => s.guruChats.length)
   const guruIsTyping = useStore((s) => s.guruIsTyping)
   const setGuruTyping = useStore((s) => s.setGuruTyping)
   const savedAnalyses = useStore((s) => s.savedAnalyses)
@@ -44,6 +46,7 @@ export default function Guru() {
   const [input, setInput] = useState('')
   const [style, setStyle] = useState(settings.guruResponseStyle ? settings.guruResponseStyle[0].toUpperCase() + settings.guruResponseStyle.slice(1) : 'Detailed')
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [copied, setCopied] = useState(null)
   const endRef = useRef(null)
   const taRef = useRef(null)
@@ -134,7 +137,6 @@ export default function Guru() {
     e.target.style.overflowY = e.target.scrollHeight > 160 ? 'auto' : 'hidden'
   }
 
-  const clearHistory = () => { if (window.confirm('Clear all Guru conversation history?')) clearGuruHistory() }
   const copy = async (t, key) => {
     try {
       await navigator.clipboard.writeText(t)
@@ -175,9 +177,13 @@ export default function Guru() {
             <Bookmark size={14} /> <span className="hidden sm:inline">Saved</span>
             {savedAnalyses.length > 0 && <span className="guru-count">{savedAnalyses.length}</span>}
           </button>
+          <button onClick={() => setHistoryOpen(true)} className="btn" aria-label={`Chat history (${guruChatCount})`} title="Chat history">
+            <History size={14} /> <span className="hidden sm:inline">History</span>
+          </button>
           {guruHistory.length > 0 && (
-            <button onClick={clearHistory} className="btn" aria-label="Clear conversation" title="Clear conversation">
-              <Trash2 size={14} />
+            <button onClick={() => { newGuruChat(); setInput(''); taRef.current?.focus() }} disabled={guruIsTyping}
+                    className="btn" aria-label="New chat" title="New chat">
+              <SquarePen size={14} /> <span className="hidden sm:inline">New</span>
             </button>
           )}
         </div>
@@ -312,6 +318,8 @@ export default function Guru() {
           Guru can make mistakes. General information only, not financial advice.
         </p>
       </div>
+
+      <ChatHistory open={historyOpen} onClose={() => setHistoryOpen(false)} disabled={guruIsTyping} />
 
       {/* SAVED DRAWER - full-width sheet on a phone, side panel on desktop. */}
       {drawerOpen && (

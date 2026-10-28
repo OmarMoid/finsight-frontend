@@ -83,7 +83,7 @@ export default function Settings() {
   const activeTheme = useStore((s) => s.activeTheme)
   const setActiveTheme = useStore((s) => s.setActiveTheme)
   const setAuthenticated = useStore((s) => s.setAuthenticated)
-  const guruHistory = useStore((s) => s.guruHistory)
+  const guruChats = useStore((s) => s.guruChats)
   const clearGuruHistory = useStore((s) => s.clearGuruHistory)
   const resetProgress = useStore((s) => s.resetProgress)
   const setWatchlist = useStore((s) => s.setWatchlist)
@@ -305,8 +305,8 @@ export default function Settings() {
               <Row label="Default Guru Market">
                 <select value={settings.guruMarket} onChange={(e) => updateSettings({ guruMarket: e.target.value })} className="rounded-lg px-2 py-1 text-sm" style={sel}><option value="us">US</option><option value="asx">ASX</option><option value="both">Both</option></select>
               </Row>
-              <Row label={`${guruHistory.length} messages in current history`}>
-                <button onClick={() => { if (window.confirm('Clear Guru history?')) clearGuruHistory() }} className="text-sm px-3 py-1 rounded-lg" style={{ background: 'var(--bg-input)', color: 'var(--negative)' }}>Clear History</button>
+              <Row label={`${guruChats.length} saved ${guruChats.length === 1 ? 'chat' : 'chats'}`}>
+                <button onClick={() => { if (window.confirm('Delete all saved Guru chats?')) clearGuruHistory() }} className="text-sm px-3 py-1 rounded-lg" style={{ background: 'var(--bg-input)', color: 'var(--negative)' }}>Clear History</button>
               </Row>
             </div>
             <div className="card mt-3" style={{ background: hasKey ? 'color-mix(in srgb, var(--positive) 8%, var(--bg-card))' : 'color-mix(in srgb, var(--negative) 8%, var(--bg-card))', borderColor: hasKey ? 'var(--positive)' : 'var(--negative)' }}>
