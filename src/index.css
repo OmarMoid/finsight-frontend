@@ -1473,3 +1473,64 @@ table {
 .overflow-x-auto {
   -webkit-overflow-scrolling: touch;
 }
+
+/* ── Markdown (components/common/Markdown.jsx) ─────────────────────────────
+   One typographic voice for every block of long-form or AI-written text. */
+.md { font-size: 0.875rem; overflow-wrap: anywhere; }
+.md-text { color: var(--text-secondary); line-height: 1.65; }
+.md-p { margin-bottom: 0.75rem; }
+.md-h1, .md-h2, .md-h3 { color: var(--text-primary); font-weight: 600; letter-spacing: -0.01em; }
+.md-h1 { margin: 1.5rem 0 0.75rem; font-size: 1.125rem; }
+.md-h2 {
+  margin: 1.5rem 0 0.625rem; padding-bottom: 0.375rem; font-size: 0.9875rem;
+  border-bottom: 1px solid var(--border);
+}
+.md-h3 { margin: 1.125rem 0 0.5rem; font-size: 0.875rem; }
+.md > :first-child, .md > div > :first-child { margin-top: 0; }
+.md-hr { margin: 1.25rem 0; border-color: var(--border); }
+.md-list { margin: 0.5rem 0 0.875rem; }
+.md-list > li { display: flex; gap: 0.625rem; margin-bottom: 0.375rem; }
+.md-marker {
+  flex-shrink: 0; line-height: 1.65; font-weight: 600; font-variant-numeric: tabular-nums;
+  font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.75rem; color: var(--accent);
+}
+.md-code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.8em;
+  padding: 1px 5px; border-radius: 4px; background: var(--bg-input); border: 1px solid var(--border);
+}
+.md-pre {
+  margin: 0.75rem 0; padding: 12px; border-radius: 6px; overflow-x: auto;
+  font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.75rem;
+  background: var(--bg-input); border: 1px solid var(--border); color: var(--text-secondary);
+}
+.md-quote {
+  margin: 0.75rem 0; padding: 2px 0 2px 12px; border-left: 2px solid var(--border-light);
+  color: var(--text-secondary);
+}
+/* Formulas: centred, serif italic like a textbook — never raw LaTeX. */
+.md-math {
+  margin: 0.75rem 0; padding: 12px 16px; border-radius: 6px; overflow-x: auto;
+  text-align: center; white-space: nowrap;
+  font-family: 'Cambria Math', 'STIX Two Math', 'Times New Roman', Georgia, serif;
+  font-size: 1.05rem; color: var(--text-primary);
+  background: var(--bg-input); border: 1px solid var(--border);
+}
+.md-math-inline {
+  font-family: 'Cambria Math', 'STIX Two Math', 'Times New Roman', Georgia, serif;
+  font-size: 1.05em; color: var(--text-primary);
+}
+.md sub, .md sup { font-size: 0.7em; line-height: 0; }
+.md-table-wrap {
+  margin: 0.75rem 0 1rem; overflow-x: auto; border-radius: 6px; border: 1px solid var(--border);
+}
+.md-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+.md-table th, .md-table td { padding: 8px 12px; text-align: left; white-space: nowrap; }
+.md-table th {
+  font-weight: 600; font-size: 0.75rem; color: var(--text-primary);
+  background: var(--bg-card-hover); border-bottom: 1px solid var(--border);
+}
+.md-table td { color: var(--text-secondary); border-top: 1px solid var(--border); }
+.md-table tbody tr:first-child td { border-top: 0; }
+.md-table .is-num { text-align: right; font-variant-numeric: tabular-nums; }
+.md-math.is-multi { text-align: left; }
+.md-math.is-multi > div { white-space: pre; }

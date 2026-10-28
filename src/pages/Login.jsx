@@ -1,22 +1,18 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Delete, ArrowRight, Eye, EyeOff, Check } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff, Lock, LineChart, ShieldCheck, Sparkles, AlertCircle } from 'lucide-react'
 import { authAPI } from '../utils/api'
 import { getApiBase, isNative } from '../utils/apiBase'
 import useStore from '../store/useStore'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import Logo from '../components/common/Logo'
 
-const MAX_PASSCODE = 12
-const KEYPAD = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del']
+const MAX_PASSCODE = 64
 
-// The rules the backend actually enforces (see Settings → Security, which
-// caps a new passcode at 4–8 characters). Showing invented "must contain a
-// symbol" rules against a numeric passcode would be theatre — these are the
-// real ones, checked live as you type.
-const RULES = [
-  { id: 'len', label: 'At least 4 characters', test: (v) => v.length >= 4 },
-  { id: 'max', label: 'No more than 8', test: (v) => v.length > 0 && v.length <= 8 },
+const HIGHLIGHTS = [
+  { icon: LineChart, title: 'Live ASX & US coverage', body: 'Quotes, fundamentals, filings and macro in one workspace.' },
+  { icon: Sparkles, title: 'Guru AI analyst', body: 'Grounded answers that read live market data before replying.' },
+  { icon: ShieldCheck, title: 'Private by design', body: 'Your watchlist and research stay on your own backend.' },
 ]
 
 export default function Login() {
@@ -25,6 +21,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [shake, setShake] = useState(false)
   const [reveal, setReveal] = useState(false)
+  const [capsLock, setCapsLock] = useState(false)
   // Surface server reachability before the passcode is even typed — on the
   // phone this is a public backend that sleeps when idle, so a slow first
   // check is expected and shouldn't read as "broken."
@@ -35,11 +32,10 @@ export default function Login() {
   const native = isNative()
 
   useEffect(() => {
-    // The on-screen keypad below is the input method on touch devices, so the
-    // hidden field is only focused where there's a hardware keyboard. This is
-    // also why the iOS keyboard no longer covers the Unlock button.
-    if (!native) inputRef.current?.focus()
-  }, [native])
+    // Autofocus only where there's a hardware keyboard. On a touch screen it
+    // would pop the system keyboard before the user has seen the page.
+    if (window.matchMedia?.('(pointer: fine)').matches) inputRef.current?.focus()
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -75,42 +71,32 @@ export default function Login() {
     }
   }, [])
 
-  const submit = useCallback(
-    async (code) => {
-      const value = code ?? passcode
-      if (!value || loading) return
-      setLoading(true)
-      setError('')
-
-      const res = await authAPI.verify(value)
-      setLoading(false)
-
-      if (res?.valid) {
-        setAuthenticated(true)
-        navigate('/dashboard')
-      } else {
-        setError(
-          res?.error
-            ? 'Could not reach the server. Check the connection and try again.'
-            : 'Incorrect passcode.'
-        )
-        setPasscode('')
-        setShake(true)
-        setTimeout(() => setShake(false), 420)
-        if (!native) inputRef.current?.focus()
-      }
-    },
-    [passcode, loading, native, navigate, setAuthenticated]
-  )
-
-  const press = (key) => {
-    if (loading) return
+  const submit = useCallback(async () => {
+    if (!passcode || loading) return
+    setLoading(true)
     setError('')
-    if (key === 'del') {
-      setPasscode((p) => p.slice(0, -1))
-      return
+
+    const res = await authAPI.verify(passcode)
+    setLoading(false)
+
+    if (res?.valid) {
+      setAuthenticated(true)
+      navigate('/dashboard')
+    } else {
+      setError(
+        res?.error
+          ? 'Could not reach the server. Check the connection and try again.'
+          : 'That passcode is incorrect. Please try again.'
+      )
+      setPasscode('')
+      setShake(true)
+      setTimeout(() => setShake(false), 420)
+      inputRef.current?.focus()
     }
-    setPasscode((p) => (p.length >= MAX_PASSCODE ? p : p + key))
+  }, [passcode, loading, navigate, setAuthenticated])
+
+  const trackCaps = (e) => {
+    if (typeof e.getModifierState === 'function') setCapsLock(e.getModifierState('CapsLock'))
   }
 
   const statusTone = {
@@ -121,375 +107,300 @@ export default function Login() {
   }[server.state]
 
   const statusText = {
-    checking: 'Contacting server…',
+    checking: 'Checking connection…',
     online: `Connected · v${server.version}`,
     waking: 'Waking the server…',
     offline: 'Server unreachable',
   }[server.state]
 
   return (
-    <div
-      className="relative flex min-h-screen w-full items-center justify-center overflow-hidden"
-      style={{ background: 'var(--bg)' }}
-    >
-      <div className="login-grid" aria-hidden="true" />
-      <div className="login-aurora" aria-hidden="true" />
-
-      <div className="relative z-10 w-full px-5 py-8" style={{ maxWidth: 400 }}>
-        {/* Brand lockup */}
-        <div className="flex flex-col items-center">
-          <div className="login-mark">
-            <Logo size={56} showWordmark={false} />
+    <div className="login-root" style={{ background: 'var(--bg)' }}>
+      {/* Brand panel — desktop only. A phone gets the compact lockup above the
+          form instead, so the field is never pushed below the fold. */}
+      <aside className="login-brand" aria-hidden="true">
+        <div className="login-brand-glow" />
+        <div className="login-brand-grid" />
+        <div className="relative z-10 flex h-full flex-col justify-between">
+          <Logo size={34} wordmarkClass="text-lg font-semibold tracking-tight" />
+          <div>
+            <h2 className="login-brand-title">
+              Market intelligence,
+              <br />
+              without the noise.
+            </h2>
+            <ul className="mt-10 space-y-6">
+              {HIGHLIGHTS.map(({ icon: Icon, title, body }) => (
+                <li key={title} className="flex gap-4">
+                  <span className="login-brand-icon">
+                    <Icon size={17} />
+                  </span>
+                  <div>
+                    <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      {title}
+                    </div>
+                    <div className="mt-0.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                      {body}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
-          <h1
-            className="mt-4 text-3xl font-bold tracking-tight"
-            style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}
-          >
-            FinSight
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Institutional-grade market intelligence
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            For informational purposes only. Not financial advice.
+          </p>
+        </div>
+      </aside>
+
+      <main className="login-main">
+        <div className="w-full" style={{ maxWidth: 380 }}>
+          <div className="login-compact-brand">
+            <Logo size={40} showWordmark={false} />
+          </div>
+
+          <h1 className="login-heading">Sign in to FinSight</h1>
+          <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Enter your passcode to open your workspace.
           </p>
 
-          {/* One status pill instead of the old two rows — the live-data claim
-              and the server check were saying the same thing twice. */}
-          <div
-            className="mt-4 flex items-center gap-2 rounded-full px-3 py-1.5"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-          >
-            <span
-              className={server.state === 'online' ? 'login-dot login-dot-live' : 'login-dot'}
-              style={{ background: statusTone }}
-            />
-            <span className="font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>
-              {statusText}
-            </span>
-          </div>
-        </div>
-
-        {/* Passcode card */}
-        <div
-          className={`login-card mt-7 ${shake ? 'login-shake' : ''}`}
-          style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--shadow-lg)',
-          }}
-        >
           <form
-            className={native ? 'is-touch' : undefined}
+            className={`mt-8 ${shake ? 'login-shake' : ''}`}
             onSubmit={(e) => {
               e.preventDefault()
               submit()
             }}
+            noValidate
           >
-            <div
-              className="text-center text-xs font-semibold uppercase tracking-[0.18em]"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Enter passcode
-            </div>
+            {/* Password managers key on a username field; a hidden one with a
+                fixed value lets them save and fill the passcode correctly. */}
+            <input
+              type="text"
+              name="username"
+              autoComplete="username"
+              value="finsight"
+              readOnly
+              hidden
+            />
 
-            {/* Filled dots read the length back without exposing the digits.
-                Touch-only: with a hardware keyboard the field below is the
-                clearer affordance and showing both is just noise. */}
-            <div className="login-pips" aria-hidden="true">
-              {Array.from({ length: Math.max(4, passcode.length || 4) }).map((_, i) => (
-                <span
-                  key={i}
-                  className="login-pip"
-                  style={{
-                    background: i < passcode.length ? 'var(--accent)' : 'transparent',
-                    borderColor: i < passcode.length ? 'var(--accent)' : 'var(--border-light)',
-                  }}
-                />
-              ))}
-            </div>
-
-            {/* The real field. Visually hidden on touch (the keypad drives it)
-                but always present so password managers and hardware keyboards
-                work exactly as before. */}
-            <div className={native ? undefined : 'login-field-wrap'}>
+            <label htmlFor="passcode" className="login-label">
+              Passcode
+            </label>
+            <div className={`login-field-wrap${error ? ' has-error' : ''}`}>
+              <Lock size={16} className="login-field-icon" aria-hidden="true" />
               <input
+                id="passcode"
                 ref={inputRef}
+                name="password"
                 type={reveal ? 'text' : 'password'}
-                inputMode="numeric"
                 autoComplete="current-password"
-                aria-label="Passcode"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="go"
+                maxLength={MAX_PASSCODE}
+                aria-invalid={!!error}
+                aria-describedby={error ? 'passcode-error' : undefined}
                 value={passcode}
+                disabled={loading}
                 onChange={(e) => {
                   setError('')
-                  setPasscode(e.target.value.slice(0, MAX_PASSCODE))
+                  setPasscode(e.target.value)
                 }}
-                className={native ? 'login-hidden-input' : 'login-field'}
-                placeholder="••••"
+                onKeyDown={trackCaps}
+                onKeyUp={trackCaps}
+                className="login-field"
+                placeholder="Enter passcode"
               />
-              {/* Reveal sits inside the field's right edge. Type-toggling
-                  rather than a second element keeps the value in one input, so
-                  autofill and the form submit see exactly one field. */}
-              {!native && (
-                <button
-                  type="button"
-                  className="login-reveal"
-                  onClick={() => setReveal((v) => !v)}
-                  aria-label={reveal ? 'Hide passcode' : 'Show passcode'}
-                  aria-pressed={reveal}
-                  tabIndex={-1}
-                >
-                  {reveal ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              )}
+              <button
+                type="button"
+                className="login-reveal"
+                onClick={() => setReveal((v) => !v)}
+                aria-label={reveal ? 'Hide passcode' : 'Show passcode'}
+                aria-pressed={reveal}
+              >
+                {reveal ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
 
-            {/* Live rule check. Fades in only once there is something to
-                check — an empty field greeted by two grey warnings reads as an
-                error state before you have done anything. */}
-            <div className={`login-rules${passcode ? ' is-visible' : ''}`} aria-live="polite">
-              {RULES.map((rule) => {
-                const met = rule.test(passcode)
-                return (
-                  <span key={rule.id} className={`login-rule${met ? ' is-met' : ''}`}>
-                    <Check size={11} strokeWidth={3} />
-                    {rule.label}
-                  </span>
-                )
-              })}
+            <div className="login-hint" aria-live="polite">
+              {error ? (
+                <span id="passcode-error" className="flex items-center gap-1.5" style={{ color: 'var(--negative)' }}>
+                  <AlertCircle size={13} /> {error}
+                </span>
+              ) : capsLock ? (
+                <span style={{ color: 'var(--accent-gold)' }}>Caps Lock is on</span>
+              ) : null}
             </div>
 
-            <div style={{ minHeight: 22 }}>
-              {error && (
-                <p className="mt-3 text-center text-sm" style={{ color: 'var(--negative)' }}>
-                  {error}
-                </p>
-              )}
-            </div>
-
-            {/* Keypad — the primary input on a phone, where a system keyboard
-                used to cover the Unlock button entirely. */}
-            <div className="login-keypad">
-              {KEYPAD.map((k, i) =>
-                k === '' ? (
-                  <span key={i} />
-                ) : (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => press(k)}
-                    className="login-key"
-                    aria-label={k === 'del' ? 'Delete' : k}
-                  >
-                    {k === 'del' ? <Delete size={20} /> : k}
-                  </button>
-                )
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || !passcode}
-              className="login-submit mt-4"
-            >
+            <button type="submit" disabled={loading || !passcode} className="login-submit">
               {loading ? (
                 <LoadingSpinner size="sm" />
               ) : (
                 <>
-                  Sign in <ArrowRight size={17} />
+                  Continue <ArrowRight size={16} />
                 </>
               )}
             </button>
           </form>
+
+          <div className="login-status">
+            <span
+              className={server.state === 'online' ? 'login-dot login-dot-live' : 'login-dot'}
+              style={{ background: statusTone }}
+            />
+            <span>{statusText}</span>
+          </div>
+
+          {server.state === 'waking' && (
+            <p className="login-note">
+              The server sleeps after 15 minutes idle, so the first request can take up to a
+              minute. Retrying automatically.
+            </p>
+          )}
+          {server.state === 'offline' && (
+            <p className="login-note">
+              No response from <span className="font-mono">{server.base}</span>.{' '}
+              {native
+                ? 'If you’ve set a custom address in Settings, make sure that machine is running the backend. Otherwise the deployed server may be briefly down.'
+                : 'Start the backend with python3 main.py in the backend folder.'}
+            </p>
+          )}
         </div>
-
-        {server.state === 'waking' && (
-          <p className="mt-4 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
-            The server sleeps after 15 minutes idle - the first request back can take up to a
-            minute. Retrying automatically.
-          </p>
-        )}
-        {server.state === 'offline' && (
-          <p className="mt-4 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
-            Tried <span className="font-mono">{server.base}</span> without a response.{' '}
-            {native
-              ? 'If you’ve pointed this at a custom address, make sure that machine is running the backend and reachable. Otherwise the deployed server may be briefly down - try again shortly.'
-              : 'Start the backend with python3 main.py in the backend folder.'}
-          </p>
-        )}
-
-        <p className="mt-6 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
-          FinSight v1.0 - for informational purposes only
-        </p>
-      </div>
+      </main>
 
       <style>{`
-        .login-grid {
+        .login-root {
+          display: grid;
+          min-height: 100vh;
+          min-height: 100dvh;
+          width: 100%;
+          grid-template-columns: 1fr;
+        }
+        @media (min-width: 1024px) {
+          .login-root { grid-template-columns: minmax(420px, 46%) 1fr; }
+        }
+
+        .login-brand {
+          display: none;
+          position: relative;
+          overflow: hidden;
+          padding: 40px 48px;
+          background: var(--bg-secondary);
+          border-right: 1px solid var(--border);
+        }
+        @media (min-width: 1024px) { .login-brand { display: block; } }
+        .login-brand-glow {
+          position: absolute; left: -20%; bottom: -30%;
+          width: 720px; height: 720px;
+          background: radial-gradient(circle, var(--accent) 0%, transparent 60%);
+          opacity: 0.14; filter: blur(80px); pointer-events: none;
+        }
+        .login-brand-grid {
           position: absolute; inset: 0; pointer-events: none;
           background-image:
             linear-gradient(var(--border) 1px, transparent 1px),
             linear-gradient(90deg, var(--border) 1px, transparent 1px);
-          background-size: 44px 44px;
-          opacity: 0.35;
-          mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, #000 20%, transparent 75%);
-          -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, #000 20%, transparent 75%);
+          background-size: 48px 48px;
+          opacity: 0.3;
+          mask-image: linear-gradient(180deg, transparent, #000 40%, transparent);
+          -webkit-mask-image: linear-gradient(180deg, transparent, #000 40%, transparent);
         }
-        .login-aurora {
-          position: absolute; top: -10%; left: 50%;
-          width: 780px; height: 780px; transform: translateX(-50%);
-          background: radial-gradient(circle at 50% 50%, var(--accent) 0%, transparent 62%);
-          opacity: 0.16; filter: blur(70px); pointer-events: none;
+        .login-brand-title {
+          font-size: 2.25rem; line-height: 1.15; font-weight: 600;
+          letter-spacing: -0.03em; color: var(--text-primary);
         }
-        .login-mark {
-          border-radius: 16px;
-          box-shadow: 0 0 0 1px var(--accent-border), 0 12px 40px -12px var(--accent);
+        .login-brand-icon {
+          display: flex; flex-shrink: 0; align-items: center; justify-content: center;
+          width: 36px; height: 36px; border-radius: 8px;
+          color: var(--accent);
+          background: color-mix(in srgb, var(--accent) 12%, transparent);
+          border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
         }
-        .login-card {
-          border-radius: 12px;
-          padding: 22px 20px 20px;
+
+        /* Top-aligned on a phone, so the system keyboard opening from below
+           never covers the field or the Continue button. */
+        .login-main {
+          display: flex; justify-content: center; align-items: flex-start;
+          padding: calc(env(safe-area-inset-top) + 56px) 20px calc(env(safe-area-inset-bottom) + 32px);
         }
-        /* Which input surface shows is a breakpoint decision, and it lives
-           here rather than as Tailwind lg: utilities - this <style> block is
-           injected after Tailwind's sheet, so .login-keypad's own display rule
-           would win over .lg\\:hidden and both would render at once. */
-        .login-pips {
-          display: flex; align-items: center; justify-content: center;
-          gap: 10px; margin-top: 20px;
+        @media (min-width: 640px) {
+          .login-main { align-items: center; padding-top: 48px; padding-bottom: 48px; }
         }
-        .login-pip {
-          width: 11px; height: 11px; border-radius: 50%;
-          border: 1.5px solid var(--border-light);
-          transition: background 0.14s ease, border-color 0.14s ease, transform 0.14s ease;
+        .login-compact-brand { margin-bottom: 28px; }
+        @media (min-width: 1024px) { .login-compact-brand { display: none; } }
+
+        .login-heading {
+          font-size: 1.625rem; line-height: 1.2; font-weight: 600;
+          letter-spacing: -0.02em; color: var(--text-primary);
         }
-        .login-field-wrap {
-          display: none;
-          position: relative;
-          margin-top: 20px;
+        .login-label {
+          display: block; margin-bottom: 8px;
+          font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary);
+        }
+        .login-field-wrap { position: relative; }
+        .login-field-icon {
+          position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+          color: var(--text-muted); pointer-events: none;
         }
         .login-field {
-          display: none;
-          width: 100%; text-align: center;
-          font-family: 'JetBrains Mono', ui-monospace, monospace;
-          font-size: 1.15rem; letter-spacing: 0.35em; text-indent: 0.35em;
-          /* Right padding clears the reveal button so a long passcode never
-             runs underneath it. */
-          padding: 12px 44px 12px 14px; border-radius: 6px; outline: none;
+          width: 100%; height: 48px;
+          padding: 0 46px 0 40px;
+          border-radius: 8px; outline: none;
+          /* 16px keeps iOS Safari from zooming the page on focus. */
+          font-size: 16px;
           background: var(--bg-input);
-          border: 1px solid var(--border);
+          border: 1px solid var(--border-light);
           color: var(--text-primary);
-          transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
-        /* A 1px accent border plus a soft outer bloom, over 150ms - enough to
-           be unmistakable about which field has the keyboard without the
-           heavy browser focus rectangle. */
+        .login-field::placeholder { color: var(--text-muted); }
         .login-field:focus {
           border-color: var(--accent);
-          box-shadow: 0 0 0 3px var(--ring), 0 0 18px -4px var(--accent);
-          background: var(--bg-card);
+          box-shadow: 0 0 0 3px var(--ring);
+        }
+        .login-field-wrap.has-error .login-field {
+          border-color: var(--negative);
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--negative) 22%, transparent);
         }
         .login-reveal {
-          position: absolute; right: 6px; top: 50%;
-          transform: translateY(-50%);
+          position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
           display: flex; align-items: center; justify-content: center;
-          width: 32px; height: 32px; border-radius: 6px;
-          border: 0; background: transparent;
+          width: 36px; height: 36px; border-radius: 6px;
           color: var(--text-muted);
           transition: color 0.15s ease, background 0.15s ease;
         }
         .login-reveal:hover { color: var(--text-primary); background: var(--bg-card-hover); }
+        .login-reveal:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
         .login-reveal[aria-pressed='true'] { color: var(--accent); }
 
-        /* Requirement capsule. Grey until met, accent-green once satisfied;
-           the whole strip fades in rather than appearing hard, so it reads as
-           guidance rather than as an error that just fired. */
-        .login-rules {
-          display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
-          margin-top: 10px;
-          opacity: 0;
-          transform: translateY(-3px);
-          transition: opacity 0.22s ease, transform 0.22s ease;
-          pointer-events: none;
+        .login-hint {
+          min-height: 20px; margin-top: 8px;
+          font-size: 0.8125rem;
         }
-        .login-rules.is-visible {
-          opacity: 1;
-          transform: translateY(0);
-        }
-        .login-rule {
-          display: inline-flex; align-items: center; gap: 5px;
-          padding: 4px 9px; border-radius: 999px;
-          font-size: 0.6875rem; font-weight: 500; line-height: 1.2;
-          background: var(--bg-input);
-          border: 1px solid var(--border);
-          color: var(--text-muted);
-          transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
-        }
-        .login-rule > svg { opacity: 0.35; transition: opacity 0.18s ease; }
-        .login-rule.is-met {
-          color: var(--positive);
-          border-color: color-mix(in srgb, var(--positive) 42%, transparent);
-          background: color-mix(in srgb, var(--positive) 11%, var(--bg-input));
-        }
-        .login-rule.is-met > svg { opacity: 1; }
-        .login-hidden-input {
-          position: absolute; width: 1px; height: 1px;
-          padding: 0; margin: -1px; overflow: hidden;
-          clip: rect(0 0 0 0); white-space: nowrap; border: 0;
-        }
-        .login-keypad {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 10px;
-          margin-top: 8px;
-        }
-        /* At the app's 1024px shell breakpoint there is a real keyboard: show
-           the field, drop the keypad and the dots. */
-        @media (min-width: 1024px) {
-          .login-keypad, .login-pips { display: none; }
-          .login-field { display: block; }
-          .login-field-wrap { display: block; }
-          /* …except in the native shell, where an iPad is over 1024px wide and
-             has no hardware keyboard. There the keypad IS the only input. */
-          .is-touch .login-keypad { display: grid; }
-          .is-touch .login-pips { display: flex; }
-        }
-        .login-key {
-          height: 56px; border-radius: 8px;
-          display: flex; align-items: center; justify-content: center;
-          font-family: 'JetBrains Mono', ui-monospace, monospace;
-          font-size: 1.35rem; font-weight: 500;
-          color: var(--text-primary);
-          background: var(--bg-input);
-          border: 1px solid var(--border);
-          -webkit-tap-highlight-color: transparent;
-          transition: background 0.12s ease, transform 0.08s ease, border-color 0.12s ease;
-        }
-        .login-key:active {
-          background: var(--accent-soft);
-          border-color: var(--accent-border);
-          transform: scale(0.96);
-        }
-        /* Solid fill, not the gradient: a single flat accent block reads as a
-           control you press, where a gradient reads as decoration. */
         .login-submit {
-          width: 100%; height: 48px; border-radius: 6px;
+          width: 100%; height: 48px; margin-top: 12px; border-radius: 8px;
           display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-          font-size: 0.9375rem; font-weight: 600; letter-spacing: 0.01em;
+          font-size: 0.9375rem; font-weight: 600;
           background: var(--accent);
           color: var(--accent-contrast);
-          border: 1px solid var(--accent);
-          box-shadow: 0 6px 20px -12px var(--accent);
-          transition: opacity 0.15s ease, transform 0.1s ease, background 0.15s ease;
+          transition: background 0.15s ease, opacity 0.15s ease;
         }
-        .login-submit:hover:not(:disabled) {
-          background: var(--accent-hover);
-          border-color: var(--accent-hover);
-          transform: translateY(-1px);
+        .login-submit:hover:not(:disabled) { background: var(--accent-hover); }
+        .login-submit:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .login-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .login-status {
+          display: flex; align-items: center; gap: 8px;
+          margin-top: 28px; padding-top: 20px;
+          border-top: 1px solid var(--border);
+          font-size: 0.75rem; color: var(--text-muted);
         }
-        .login-submit:active:not(:disabled) { transform: scale(0.985) translateY(0); }
-        .login-submit:disabled { opacity: 0.45; box-shadow: none; }
-        .login-dot {
-          width: 7px; height: 7px; border-radius: 50%;
+        .login-note {
+          margin-top: 10px; font-size: 0.75rem; line-height: 1.5;
+          color: var(--text-muted);
         }
-        .login-dot-live {
-          animation: loginPulse 1.9s ease-out infinite;
-        }
+        .login-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .login-dot-live { animation: loginPulse 1.9s ease-out infinite; }
         @keyframes loginPulse {
           0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--positive) 60%, transparent); }
           70%  { box-shadow: 0 0 0 7px transparent; }

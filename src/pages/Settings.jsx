@@ -51,8 +51,9 @@ const API_ROWS = [
   ['yFinance', 'Price history, ASX', 'Free (no key)'],
   ['CNN F&G', 'Fear & Greed Index', 'Free (public)'],
   ['Exchange Rates', 'Currency conversion', 'Paid'],
+  ['AI (Guru)', 'Guru analyst, AI lessons', 'Free (Groq / Gemini)'],
 ]
-const API_KEY_MAP = { 'FMP': 'FMP', 'Finnhub': 'Finnhub', 'Alpha Vantage': 'Alpha Vantage', 'FRED': 'FRED', 'ABS': 'ABS', 'yFinance': 'yFinance', 'CNN F&G': 'CNN', 'Exchange Rates': 'Exchange Rates' }
+const API_KEY_MAP = { 'FMP': 'FMP', 'Finnhub': 'Finnhub', 'Alpha Vantage': 'Alpha Vantage', 'FRED': 'FRED', 'ABS': 'ABS', 'yFinance': 'yFinance', 'CNN F&G': 'CNN', 'Exchange Rates': 'Exchange Rates', 'AI (Guru)': 'AI' }
 
 function Section({ id, title, children }) {
   return (

@@ -131,6 +131,12 @@ const useStore = create(
       guruHistory: [],
       addGuruMessage: (msg) =>
         set((s) => ({ guruHistory: [...s.guruHistory, msg] })),
+      updateGuruMessage: (index, patch) =>
+        set((s) => ({
+          guruHistory: s.guruHistory.map((m, i) => (i === index ? { ...m, ...patch } : m)),
+        })),
+      removeGuruMessage: (index) =>
+        set((s) => ({ guruHistory: s.guruHistory.filter((_, i) => i !== index) })),
       clearGuruHistory: () => set({ guruHistory: [] }),
       guruIsTyping: false,
       setGuruTyping: (val) => set({ guruIsTyping: val }),

@@ -21,31 +21,11 @@ import { getWorkedExample } from '../data/workedExamples'
 import { stocksAPI, macroAPI } from '../utils/api'
 import useStore from '../store/useStore'
 import LoadingSpinner from '../components/common/LoadingSpinner'
+import Markdown from '../components/common/Markdown'
 import { formatNumber, formatCurrency, formatPercent, getChangeCSSVar, symbolIsASX } from '../utils/formatters'
 
 const LEVEL_COLOR = { Beginner: 'var(--positive)', Intermediate: 'var(--accent)', Advanced: 'var(--accent-purple)' }
 const M = 1e6
-
-// ── markdown renderer ───────────────────────────────────────────────────────
-function md(text) {
-  if (!text) return null
-  const lines = text.split('\n'); const out = []; let list = []
-  const flush = (k) => { if (list.length) { out.push(<ul key={'u' + k} className="my-2 space-y-1">{list}</ul>); list = [] } }
-  const inline = (s) => s.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g).map((p, i) =>
-    p.startsWith('**') ? <strong key={i} className="font-semibold text-[var(--text-primary)]">{p.slice(2, -2)}</strong>
-      : p.startsWith('*') ? <em key={i} className="italic">{p.slice(1, -1)}</em>
-        : p.startsWith('`') ? <code key={i} className="font-mono text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-input)' }}>{p.slice(1, -1)}</code>
-          : <span key={i}>{p}</span>)
-  lines.forEach((line, i) => {
-    const t = line.trim()
-    if (t.startsWith('## ')) { flush(i); out.push(<h3 key={i} className="text-base font-bold mt-4 mb-2 pb-1 text-[var(--text-primary)]" style={{ borderBottom: '1px solid var(--border)' }}>{inline(t.slice(3))}</h3>) }
-    else if (/^\d+\.\s/.test(t)) list.push(<li key={i} className="flex gap-2"><span className="font-mono font-semibold" style={{ color: 'var(--accent)' }}>{t.match(/^(\d+)\./)[1]}.</span><span className="text-[var(--text-secondary)]">{inline(t.replace(/^\d+\.\s/, ''))}</span></li>)
-    else if (t.startsWith('- ')) list.push(<li key={i} className="flex gap-2"><span style={{ color: 'var(--accent)' }}>•</span><span className="text-[var(--text-secondary)]">{inline(t.slice(2))}</span></li>)
-    else if (t === '') flush(i)
-    else { flush(i); out.push(<p key={i} className="text-sm text-[var(--text-secondary)] leading-relaxed mb-2">{inline(t)}</p>) }
-  })
-  flush('e'); return out
-}
 
 // ── small inputs ────────────────────────────────────────────────────────────
 function Num({ label, value, onChange, step = 0.1, suffix }) {
@@ -277,13 +257,10 @@ function Curriculum() {
                   <span className="text-xs text-[var(--text-muted)]">{topic.categoryLabel} · {topic.duration} min</span>
                 </div>
                 <h2 className="text-xl font-bold text-[var(--text-primary)]">{topic.title}</h2>
-                <div className="mt-2 rounded-lg px-3 py-2 text-xs" style={{ background: 'var(--bg-input)', color: 'var(--text-muted)' }}>
-                  Connect the Guru API key to unlock AI-enhanced lessons with live stock examples. The full written lesson below works offline.
-                </div>
               </div>
 
               <div className="card mb-3">
-                {lesson ? md(lesson) : <p className="text-sm text-[var(--text-muted)]">Full lesson content for this topic is being added. The quiz and structure are available; check back soon.</p>}
+                {lesson ? <Markdown text={lesson} /> : <p className="text-sm text-[var(--text-muted)]">Full lesson content for this topic is being added. The quiz and structure are available; check back soon.</p>}
               </div>
 
               {/* Advanced extension. Collapsed by default so the main lesson
@@ -301,7 +278,7 @@ function Curriculum() {
                       {deepOpen ? 'Hide −' : 'Read +'}
                     </span>
                   </button>
-                  {deepOpen && <div className="mt-2">{md(deepDive)}</div>}
+                  {deepOpen && <div className="mt-2">{<Markdown text={deepDive} />}</div>}
                 </div>
               )}
 
@@ -310,7 +287,7 @@ function Curriculum() {
                   <div className="flex items-center gap-2 mb-1">
                             <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--accent)' }}>Practical Walkthrough</span>
                   </div>
-                  {md(workflow)}
+                  {<Markdown text={workflow} />}
                 </div>
               )}
 
