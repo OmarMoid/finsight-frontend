@@ -75,6 +75,8 @@ export const macroAPI = {
   getAustralia: () => client.get('/macro/australia'),
   getYieldCurve: () => client.get('/macro/yield-curve'),
   getRates: () => client.get('/macro/rates'),
+  getFX: () => client.get('/macro/fx'),
+  getBondYields: () => client.get('/macro/bond-yields'),
 }
 
 // ── SENTIMENT ──────────────────────────────────────────────────────────────

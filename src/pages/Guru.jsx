@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   ArrowUp, Copy, Check, Bookmark, BookmarkPlus, ThumbsUp, ThumbsDown, Trash2, X, History, SquarePen,
-  AlertTriangle, RotateCcw, Sparkles, TrendingUp, Globe2, Scale, Coins, ShieldAlert, BarChart3,
+  AlertTriangle, RotateCcw, Sparkles, Database, ChevronDown, TrendingUp, Globe2, Scale, Coins, ShieldAlert, BarChart3,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { guruAPI, healthAPI } from '../utils/api'
@@ -22,6 +22,37 @@ const STYLES = ['Brief', 'Detailed', 'Institutional']
 const PROVIDER_LABELS = { groq: 'Groq', gemini: 'Gemini', anthropic: 'Anthropic' }
 
 const ANSWER_SECTIONS = { RECOMMENDATION: 'guru-rec', DISCLAIMER: 'guru-disclaimer' }
+
+// Every answer is grounded in data FinSight fetched for it; show what and
+// how fresh, so a figure can be traced back rather than taken on trust.
+function fmtAsOf(d) {
+  const t = new Date(`${String(d).slice(0, 10)}T00:00:00`)
+  return Number.isNaN(t.getTime()) ? d : t.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function DataSources({ sources }) {
+  const [open, setOpen] = useState(false)
+  const newest = sources.map((s) => s.as_of).filter(Boolean).sort().pop()
+  return (
+    <div className="guru-sources">
+      <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="guru-sources-toggle">
+        <Database size={12} />
+        Live FinSight data · {sources.length} {sources.length === 1 ? 'source' : 'sources'}{newest ? ` · as of ${fmtAsOf(newest)}` : ''}
+        <ChevronDown size={12} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+      </button>
+      {open && (
+        <ul className="guru-sources-list">
+          {sources.map((s, i) => (
+            <li key={i}>
+              <span className="text-[var(--text-secondary)]">{s.label}</span>
+              <span className="text-[var(--text-muted)] tabular">{s.provider ? `${s.provider} · ` : ''}{fmtAsOf(s.as_of)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
 
 // ── page ────────────────────────────────────────────────────────────────────
 
@@ -99,7 +130,7 @@ export default function Guru() {
         timestamp: Date.now(),
       })
     } else {
-      addGuruMessage({ role: 'guru', content: res.response, usage: res.usage, provider: res.provider, symbols: res.symbols_detected, timestamp: Date.now() })
+      addGuruMessage({ role: 'guru', content: res.response, usage: res.usage, provider: res.provider, symbols: res.symbols_detected, sources: res.sources, timestamp: Date.now() })
     }
   }
 
@@ -253,6 +284,7 @@ export default function Guru() {
                 ) : (
                   <>
                     <Markdown text={m.content} sections={ANSWER_SECTIONS} />
+                    {m.sources?.length > 0 && <DataSources sources={m.sources} />}
                     <div className="flex items-center gap-1 mt-2">
                       <button onClick={() => copy(m.content, i)} className="guru-action" aria-label="Copy" title="Copy">
                         {copied === i ? <Check size={14} style={{ color: 'var(--positive)' }} /> : <Copy size={14} />}
@@ -410,6 +442,18 @@ export default function Guru() {
           padding: 1px 6px; border-radius: 4px;
           color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
         }
+        .guru-sources { margin-top: 12px; }
+        .guru-sources-toggle {
+          display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px;
+          font-size: 0.6875rem; color: var(--text-muted); background: var(--bg-card); border: 1px solid var(--border);
+          transition: color 0.15s ease, border-color 0.15s ease;
+        }
+        .guru-sources-toggle:hover { color: var(--text-primary); border-color: var(--border-light); }
+        .guru-sources-list {
+          margin-top: 6px; padding: 8px 10px; border-radius: 6px; font-size: 0.75rem;
+          background: var(--bg-card); border: 1px solid var(--border);
+        }
+        .guru-sources-list li { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
         .guru-notice {
           padding: 14px 16px; border-radius: var(--radius-card);
           background: var(--bg-card); border: 1px solid var(--border);

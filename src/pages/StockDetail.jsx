@@ -1,18 +1,18 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, createContext, useContext } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Star, ExternalLink } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts'
 import toast from 'react-hot-toast'
-import { stocksAPI, watchlistAPI } from '../utils/api'
+import { stocksAPI, watchlistAPI, macroAPI } from '../utils/api'
 import useStore from '../store/useStore'
 import PriceChart from '../components/charts/PriceChart'
 import LoadingSpinner, { SkeletonBlock } from '../components/common/LoadingSpinner'
 import { SkeletonChart } from '../components/common/Skeleton'
 import {
-  formatNumber, formatCurrency, formatPercent, formatMarketCap, formatVolume,
-  formatDate, getChangeCSSVar, getCurrencySymbol, symbolIsASX, timeAgo, truncate,
+  formatNumber, formatCurrency, formatPercent, formatVolume,
+  formatDate, getChangeCSSVar, symbolIsASX, timeAgo, truncate,
   getPEContext, getAltmanZContext, getPiotroskiContext, getRSISignal,
 } from '../utils/formatters'
 
@@ -26,6 +26,59 @@ const TABS = ['Overview', 'Financials', 'Earnings', 'Valuation', 'Technicals', '
 
 const pick = (...vals) => vals.find((v) => v != null && v !== '') ?? null
 
+// ── Display currency ───────────────────────────────────────────────────────
+// Every money figure on the page goes through this, so the A$ / $ toggle
+// converts prices, targets, DCF and statements alike. Values default to the
+// listing currency; statements arrive in the reporting currency (BHP: USD
+// accounts, AUD shares) and are converted from that.
+const MoneyContext = createContext(null)
+const useMoney = () => useContext(MoneyContext)
+
+function makeMoney(listing, display, fx) {
+  const rates = fx?.rates || {}
+  const conv = (v, from = listing) => {
+    if (v == null || Number.isNaN(Number(v))) return null
+    if (!from || from === display) return Number(v)
+    const a = rates[from], b = rates[display]
+    return a && b ? (Number(v) * b) / a : null
+  }
+  const sym = display === 'AUD' ? 'A$' : '$'
+  return {
+    listing, display, sym, fx,
+    conv,
+    // "A$57.56" — per-share prices
+    price: (v, from, digits = 2) => {
+      const c = conv(v, from)
+      return c == null ? '-' : `${c < 0 ? '-' : ''}${sym}${formatNumber(Math.abs(c), digits)}`
+    },
+    // "A$292.6B" — totals
+    big: (v, from) => formatCurrency(conv(v, from), display, true),
+  }
+}
+
+function CurrencyToggle({ listing, display, onChange, fx }) {
+  const usable = ['AUD', 'USD'].includes(listing) && fx?.rates?.USD
+  if (!usable) return null
+  const rate = fx.rates.USD
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="segmented" role="group" aria-label="Display currency">
+        {[['AUD', 'A$'], ['USD', '$']].map(([code, label]) => (
+          <button key={code} onClick={() => onChange(code)} aria-pressed={display === code}
+                  title={code === listing ? `${label} (listing currency)` : `Convert to ${label}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {display !== listing && (
+        <span className="text-2xs text-[var(--text-muted)]">
+          Converted from {listing === 'AUD' ? 'A$' : '$'} at A$1 = ${formatNumber(rate, 4)}{fx.date ? ` (${formatDate(fx.date)})` : ''}
+        </span>
+      )}
+    </div>
+  )
+}
+
 function Pill({ label, value }) {
   return (
     <div className="stat">
@@ -37,7 +90,8 @@ function Pill({ label, value }) {
 
 // Extended-hours (pre/post-market) price line. Shows only when the market is
 // in a pre/post session and Yahoo is reporting an extended-hours quote.
-function ExtendedHours({ quote, cur }) {
+function ExtendedHours({ quote }) {
+  const money = useMoney()
   const state = quote.market_state
   let label, price, chg, pct
   if (state === 'PRE' && quote.pre_market_price != null) {
@@ -51,9 +105,9 @@ function ExtendedHours({ quote, cur }) {
   return (
     <div className="flex items-center gap-2 mt-1.5 text-sm">
       <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide" style={{ background: 'var(--bg-input)', color: 'var(--accent-gold)' }}>{label}</span>
-      <span className="font-mono font-medium text-[var(--text-primary)]">{cur}{formatNumber(price, 2)}</span>
+      <span className="font-mono font-medium text-[var(--text-primary)]">{money.price(price)}</span>
       <span className="font-mono" style={{ color }}>
-        {chg != null ? `${chg >= 0 ? '+' : ''}${formatNumber(chg, 2)}` : ''}{pct != null ? ` (${formatPercent(pct)})` : ''}
+        {chg != null ? `${chg >= 0 ? '+' : ''}${formatNumber(money.conv(chg), 2)}` : ''}{pct != null ? ` (${formatPercent(pct)})` : ''}
       </span>
     </div>
   )
@@ -65,19 +119,34 @@ function Badge({ children, color = 'var(--text-secondary)', bg = 'var(--bg-input
 
 // ── Analyst consensus ──────────────────────────────────────────────────────
 function AnalystConsensus({ rec, target, price, numAnalysts }) {
-  if (!rec) return null
-  const buy = (rec.strongBuy || 0) + (rec.buy || 0)
-  const hold = rec.hold || 0
-  const sell = (rec.sell || 0) + (rec.strongSell || 0)
+  const money = useMoney()
+  const buy = (rec?.strongBuy || 0) + (rec?.buy || 0)
+  const hold = rec?.hold || 0
+  const sell = (rec?.sell || 0) + (rec?.strongSell || 0)
   const total = buy + hold + sell
-  if (total === 0) return null
+  const hasConsensus = total > 0
+  const hasTarget = target?.targetMedian != null || target?.targetMean != null
+
+  // Both providers can come back empty (rate-limited or plan-gated) without
+  // erroring, so this would otherwise render as a card that's just silently
+  // missing with no indication anything went wrong. Say so instead.
+  if (!hasConsensus && !hasTarget) {
+    return (
+      <div className="card mb-3">
+        <div className="section-label">Analyst Forecasts</div>
+        <p className="text-sm text-[var(--text-muted)] mt-1">Not available for this symbol right now.</p>
+      </div>
+    )
+  }
 
   let label = 'Hold', color = 'var(--accent-gold)'
-  const score = (buy * 1 + hold * 0 + sell * -1) / total
-  if (score > 0.5) { label = 'Strong Buy'; color = 'var(--positive)' }
-  else if (score > 0.15) { label = 'Buy'; color = 'var(--positive)' }
-  else if (score < -0.5) { label = 'Strong Sell'; color = 'var(--negative)' }
-  else if (score < -0.15) { label = 'Sell'; color = 'var(--negative)' }
+  if (hasConsensus) {
+    const score = (buy * 1 + hold * 0 + sell * -1) / total
+    if (score > 0.5) { label = 'Strong Buy'; color = 'var(--positive)' }
+    else if (score > 0.15) { label = 'Buy'; color = 'var(--positive)' }
+    else if (score < -0.5) { label = 'Strong Sell'; color = 'var(--negative)' }
+    else if (score < -0.15) { label = 'Sell'; color = 'var(--negative)' }
+  }
 
   const median = target?.targetMedian ?? target?.targetMean
   const mean = target?.targetMean ?? target?.targetMedian
@@ -90,34 +159,40 @@ function AnalystConsensus({ rec, target, price, numAnalysts }) {
     <div className="card grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 mb-3">
       <div>
         <div className="section-label">Consensus</div>
-        <div className="text-lg font-bold" style={{ color }}>{label}</div>
-        <div className="mt-2 h-2 rounded-full overflow-hidden flex">
-          <div style={{ width: `${(buy / total) * 100}%`, background: 'var(--positive)' }} />
-          <div style={{ width: `${(hold / total) * 100}%`, background: 'var(--accent-gold)' }} />
-          <div style={{ width: `${(sell / total) * 100}%`, background: 'var(--negative)' }} />
-        </div>
-        {/* Ratings sit under the bar they describe on a phone, where the
-            three-column desktop layout collapses to a single stack. */}
-        <div className="flex items-center gap-5 mt-3">
-          {[[buy, 'Buy', 'var(--positive)'], [hold, 'Hold', 'var(--accent-gold)'], [sell, 'Sell', 'var(--negative)']].map(([n, l, c]) => (
-            <div key={l}>
-              <div className="text-lg font-bold font-mono leading-none" style={{ color: c }}>{n}</div>
-              <div className="text-2xs text-[var(--text-muted)] mt-1">{l}</div>
+        {hasConsensus ? (
+          <>
+            <div className="text-lg font-bold" style={{ color }}>{label}</div>
+            <div className="mt-2 h-2 rounded-full overflow-hidden flex">
+              <div style={{ width: `${(buy / total) * 100}%`, background: 'var(--positive)' }} />
+              <div style={{ width: `${(hold / total) * 100}%`, background: 'var(--accent-gold)' }} />
+              <div style={{ width: `${(sell / total) * 100}%`, background: 'var(--negative)' }} />
             </div>
-          ))}
-        </div>
+            {/* Ratings sit under the bar they describe on a phone, where the
+                three-column desktop layout collapses to a single stack. */}
+            <div className="flex items-center gap-5 mt-3">
+              {[[buy, 'Buy', 'var(--positive)'], [hold, 'Hold', 'var(--accent-gold)'], [sell, 'Sell', 'var(--negative)']].map(([n, l, c]) => (
+                <div key={l}>
+                  <div className="text-lg font-bold font-mono leading-none" style={{ color: c }}>{n}</div>
+                  <div className="text-2xs text-[var(--text-muted)] mt-1">{l}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="text-sm text-[var(--text-muted)] mt-1">Not available</p>
+        )}
       </div>
       <div className="md:col-span-2">
         <div className="section-label">Median Price Target</div>
         <div className="flex items-baseline gap-2.5">
-          <span className="text-xl font-bold font-mono text-[var(--text-primary)]">{median != null ? formatNumber(median, 2) : '-'}</span>
+          <span className="text-xl font-bold font-mono text-[var(--text-primary)]">{money.price(median)}</span>
           {upside != null && <span className="text-sm font-semibold font-mono" style={{ color: getChangeCSSVar(upside) }}>{formatPercent(upside)} upside</span>}
         </div>
         <div className="grid grid-cols-3 gap-2 mt-2.5">
           {[['Low', low, 'var(--negative)'], ['Mean', mean, 'var(--text-secondary)'], ['High', high, 'var(--positive)']].map(([l, v, c]) => (
             <div key={l} className="stat">
               <div className="stat-label">{l}</div>
-              <div className="stat-value" style={{ color: c }}>{v != null ? formatNumber(v, 2) : '-'}</div>
+              <div className="stat-value" style={{ color: c }}>{money.price(v)}</div>
             </div>
           ))}
         </div>
@@ -286,7 +361,9 @@ function EpsBreakdown({ symbol }) {
   )
 }
 
-function FinancialsTab({ symbol, currency = 'USD' }) {
+function FinancialsTab({ symbol, reported }) {
+  const money = useMoney()
+  const fmt = (v) => money.big(v, reported)
   const [period, setPeriod] = useState('annual')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -325,12 +402,12 @@ function FinancialsTab({ symbol, currency = 'USD' }) {
   ]
 
   const incomeRows = [
-    ['Revenue', (r) => formatCurrency(r.revenue, currency, true)],
-    ['Gross Profit', (r) => formatCurrency(r.grossProfit, currency, true)],
-    ['EBIT', (r) => formatCurrency(r.operatingIncome, currency, true)],
-    ['Net Income', (r) => formatCurrency(r.netIncome, currency, true)],
-    ['EBITDA', (r) => formatCurrency(r.ebitda, currency, true)],
-    ['EPS Diluted', (r) => r.epsdiluted != null ? formatNumber(r.epsdiluted, 2) : '-'],
+    ['Revenue', (r) => fmt(r.revenue)],
+    ['Gross Profit', (r) => fmt(r.grossProfit)],
+    ['EBIT', (r) => fmt(r.operatingIncome)],
+    ['Net Income', (r) => fmt(r.netIncome)],
+    ['EBITDA', (r) => fmt(r.ebitda)],
+    ['EPS Diluted', (r) => money.price(r.epsdiluted, reported)],
   ]
 
   return (
@@ -341,6 +418,12 @@ function FinancialsTab({ symbol, currency = 'USD' }) {
                   style={{ background: period === p ? 'var(--accent)' : 'var(--bg-input)', color: period === p ? 'var(--accent-contrast)' : 'var(--text-secondary)' }}>{p}</button>
         ))}
       </div>
+
+      {reported && reported !== money.display && (
+        <p className="text-2xs text-[var(--text-muted)]">
+          Reported in {reported === 'AUD' ? 'A$' : reported === 'USD' ? '$' : reported}; shown in {money.sym} at today&rsquo;s exchange rate.
+        </p>
+      )}
 
       <EpsBreakdown symbol={symbol} />
 
@@ -376,12 +459,12 @@ function FinancialsTab({ symbol, currency = 'USD' }) {
       <div className="card">
         <h4 className="card-title mb-2">Balance Sheet (latest)</h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <MetricTile name="Total Assets" value={formatCurrency(balance.totalAssets, currency, true)} />
-          <MetricTile name="Total Liabilities" value={formatCurrency(balance.totalLiabilities, currency, true)} />
-          <MetricTile name="Total Equity" value={formatCurrency(balance.totalStockholdersEquity, currency, true)} />
-          <MetricTile name="Cash" value={formatCurrency(balance.cashAndCashEquivalents, currency, true)} />
-          <MetricTile name="Total Debt" value={formatCurrency(balance.totalDebt, currency, true)} />
-          <MetricTile name="Net Debt" value={formatCurrency(balance.netDebt, currency, true)} />
+          <MetricTile name="Total Assets" value={fmt(balance.totalAssets)} />
+          <MetricTile name="Total Liabilities" value={fmt(balance.totalLiabilities)} />
+          <MetricTile name="Total Equity" value={fmt(balance.totalStockholdersEquity)} />
+          <MetricTile name="Cash" value={fmt(balance.cashAndCashEquivalents)} />
+          <MetricTile name="Total Debt" value={fmt(balance.totalDebt)} />
+          <MetricTile name="Net Debt" value={fmt(balance.netDebt)} />
         </div>
       </div>
 
@@ -397,7 +480,7 @@ function FinancialsTab({ symbol, currency = 'USD' }) {
             {[['Operating CF', 'operatingCashFlow'], ['Capex', 'capitalExpenditure'], ['Free Cash Flow', 'freeCashFlow'], ['Dividends Paid', 'dividendsPaid']].map(([name, key]) => (
               <tr key={name} className="border-t" style={{ borderColor: 'var(--border)' }}>
                 <td className="py-1.5 text-[var(--text-secondary)]">{name}</td>
-                {cash.map((r, i) => <td key={i} className="py-1.5 text-right font-mono text-[var(--text-primary)] whitespace-nowrap">{formatCurrency(r[key], currency, true)}</td>)}
+                {cash.map((r, i) => <td key={i} className="py-1.5 text-right font-mono text-[var(--text-primary)] whitespace-nowrap">{fmt(r[key])}</td>)}
               </tr>
             ))}
           </tbody>
@@ -465,12 +548,15 @@ function FinancialsTab({ symbol, currency = 'USD' }) {
 
 function ValuationTab({ symbol, price, fallbackTarget }) {
   const navigate = useNavigate()
+  const money = useMoney()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   useEffect(() => { stocksAPI.getValuation(symbol).then((r) => { setData(r?.error ? null : r); setLoading(false) }) }, [symbol])
   if (loading) return <LoadingSpinner label="Loading valuation…" />
   if (!data) return <p className="text-sm text-[var(--text-muted)]">Valuation unavailable</p>
 
+  // The backend returns the DCF in the listing currency (converting a
+  // computed one from the reporting currency where they differ).
   const dcfVal = data.dcf?.dcf ?? data.dcf?.['dcf']
   // A locally-computed DCF reports *why* it declined to produce a number
   // (a bank's cash flows, a cash-burning company) rather than returning
@@ -508,18 +594,22 @@ function ValuationTab({ symbol, price, fallbackTarget }) {
           <>
             <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
               <div><div className="text-xs text-[var(--text-muted)]">DCF Fair Value</div>
-                <div className="text-3xl font-bold font-mono" style={{ color: 'var(--positive)' }}>{dcfVal != null ? formatNumber(dcfVal, 2) : '-'}</div></div>
+                <div className="text-3xl font-bold font-mono" style={{ color: 'var(--positive)' }}>{money.price(dcfVal)}</div></div>
               <div><div className="text-xs text-[var(--text-muted)]">Current Price</div>
-                <div className="text-2xl font-mono text-[var(--text-primary)]">{price != null ? formatNumber(price, 2) : '-'}</div></div>
+                <div className="text-2xl font-mono text-[var(--text-primary)]">{money.price(price)}</div></div>
               {upside != null && <div><div className="text-xs text-[var(--text-muted)]">Upside / (Downside)</div>
                 <div className="text-2xl font-mono font-bold" style={{ color: getChangeCSSVar(upside) }}>{formatPercent(upside)}</div></div>}
             </div>
             {dcfAssumptions && (
               <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
                 <div className="text-2xs uppercase tracking-wide text-[var(--text-muted)] mb-1.5">Assumptions behind this number</div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   {[
                     ['Discount rate', formatPercent(dcfAssumptions.discountRate * 100)],
+                    ...(dcfAssumptions.riskFreeRate != null ? [[
+                      dcfAssumptions.riskFreeLabel?.startsWith('Australian') ? 'Risk-free (AU 10y)' : 'Risk-free (US 10y)',
+                      formatPercent(dcfAssumptions.riskFreeRate * 100, 2, false),
+                    ]] : []),
                     ['Yr-1 growth', formatPercent(dcfAssumptions.stageOneGrowth * 100)],
                     ['Terminal growth', formatPercent(dcfAssumptions.terminalGrowth * 100)],
                     ['Adj. beta', formatNumber(dcfAssumptions.adjustedBeta, 2)],
@@ -534,16 +624,18 @@ function ValuationTab({ symbol, price, fallbackTarget }) {
             )}
           </>
         )}
-        <p className="text-xs text-[var(--text-muted)] mt-3">DCF is model-dependent. See Valuation Lab to build your own model.</p>
+        <p className="text-xs text-[var(--text-muted)] mt-3">
+          DCF is model-dependent.{dcfAssumptions?.riskFreeLabel ? ` Discounted using the ${dcfAssumptions.riskFreeLabel} yield${dcfAssumptions.riskFreeAsOf ? ` (${formatDate(dcfAssumptions.riskFreeAsOf)})` : ''}.` : ''} See Valuation Lab to build your own model.
+        </p>
         <button onClick={() => navigate(`/learning?symbol=${symbol}#lab`)} className="mt-2 text-sm text-[var(--accent)]">Open in Valuation Lab →</button>
       </div>
 
       <div className="card">
         <h4 className="card-title mb-3">Price Target</h4>
         <div className="grid grid-cols-3 gap-3 text-center">
-          <div><div className="text-2xs text-[var(--text-muted)]">Low</div><div className="font-mono text-[var(--text-primary)]">{tgt.targetLow != null ? formatNumber(tgt.targetLow, 2) : '-'}</div></div>
-          <div><div className="text-2xs text-[var(--text-muted)]">Median</div><div className="font-mono font-bold text-[var(--text-primary)]">{tgt.targetMedian != null ? formatNumber(tgt.targetMedian, 2) : '-'}</div></div>
-          <div><div className="text-2xs text-[var(--text-muted)]">High</div><div className="font-mono text-[var(--text-primary)]">{tgt.targetHigh != null ? formatNumber(tgt.targetHigh, 2) : '-'}</div></div>
+          <div><div className="text-2xs text-[var(--text-muted)]">Low</div><div className="font-mono text-[var(--text-primary)]">{money.price(tgt.targetLow)}</div></div>
+          <div><div className="text-2xs text-[var(--text-muted)]">Median</div><div className="font-mono font-bold text-[var(--text-primary)]">{money.price(tgt.targetMedian)}</div></div>
+          <div><div className="text-2xs text-[var(--text-muted)]">High</div><div className="font-mono text-[var(--text-primary)]">{money.price(tgt.targetHigh)}</div></div>
         </div>
       </div>
 
@@ -816,7 +908,13 @@ export default function StockDetail() {
   const [tab, setTab] = useState('Overview')
   const [period, setPeriod] = useState('1y')
   const [history, setHistory] = useState(null)
+  const [fx, setFx] = useState(null)
+  const [displayCur, setDisplayCur] = useState(null)
   const watching = isInWatchlist(symbol)
+
+  useEffect(() => { macroAPI.getFX().then((r) => setFx(r?.error ? null : r)) }, [])
+  // A new symbol starts in its own listing currency.
+  useEffect(() => { setDisplayCur(null) }, [symbol])
 
   useEffect(() => {
     addRecentlyViewed(symbol)
@@ -868,10 +966,12 @@ export default function StockDetail() {
     </div>
   )
 
-  const cur = getCurrencySymbol(symbol)
+  const listing = quote.currency || (symbolIsASX(symbol) ? 'AUD' : 'USD')
+  const money = makeMoney(listing, displayCur || listing, fx)
   const changeColor = getChangeCSSVar(quote.change ?? 0)
 
   return (
+    <MoneyContext.Provider value={money}>
     <div className="page">
       {/* The phone gets a Back button in the app bar itself, so this one is
           desktop-only rather than a second, redundant control. */}
@@ -891,13 +991,14 @@ export default function StockDetail() {
             </div>
             <div className="text-sm text-[var(--text-secondary)] mt-0.5 truncate">{quote.name}</div>
             <div className="flex items-baseline gap-2.5 flex-wrap mt-2.5">
-              <span className="text-3xl font-bold font-mono text-[var(--text-primary)] leading-none">{cur}{formatNumber(quote.price, 2)}</span>
+              <span className="text-3xl font-bold font-mono text-[var(--text-primary)] leading-none">{money.price(quote.price)}</span>
               <span className="text-base font-semibold font-mono" style={{ color: changeColor }}>
-                {quote.change != null ? `${quote.change > 0 ? '+' : ''}${formatNumber(quote.change, 2)}` : ''} ({formatPercent(quote.change_percent)})
+                {quote.change != null ? `${quote.change > 0 ? '+' : ''}${formatNumber(money.conv(quote.change), 2)}` : ''} ({formatPercent(quote.change_percent)})
               </span>
             </div>
-            <ExtendedHours quote={quote} cur={cur} />
-            <span className="text-xs text-[var(--text-muted)] mt-1.5 block">At close{quote.previous_close != null ? ` · prev ${cur}${formatNumber(quote.previous_close, 2)}` : ''}</span>
+            <ExtendedHours quote={quote} />
+            <span className="text-xs text-[var(--text-muted)] mt-1.5 block">At close{quote.previous_close != null ? ` · prev ${money.price(quote.previous_close)}` : ''}</span>
+            <div className="mt-3"><CurrencyToggle listing={listing} display={money.display} onChange={setDisplayCur} fx={fx} /></div>
           </div>
           {/* Full-width on a phone so it's a real target, compact on desktop. */}
           <button onClick={toggleWatch} className="btn group w-full sm:w-auto shrink-0"
@@ -908,14 +1009,14 @@ export default function StockDetail() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 mt-3.5">
-          <Pill label="52W High" value={quote['52w_high'] != null ? formatNumber(quote['52w_high'], 2) : '-'} />
-          <Pill label="52W Low" value={quote['52w_low'] != null ? formatNumber(quote['52w_low'], 2) : '-'} />
-          <Pill label="Open" value={quote.open != null ? formatNumber(quote.open, 2) : '-'} />
-          <Pill label="Prev Close" value={quote.previous_close != null ? formatNumber(quote.previous_close, 2) : '-'} />
+          <Pill label="52W High" value={money.price(quote['52w_high'])} />
+          <Pill label="52W Low" value={money.price(quote['52w_low'])} />
+          <Pill label="Open" value={money.price(quote.open)} />
+          <Pill label="Prev Close" value={money.price(quote.previous_close)} />
           <Pill label="Div Yield" value={quote.dividend_yield != null ? formatPercent(quote.dividend_yield, 2, false) : '-'} />
           <Pill
             label="EPS TTM / Fwd"
-            value={`${quote.eps != null ? formatNumber(quote.eps, 2) : '-'} / ${quote.eps_forward != null ? formatNumber(quote.eps_forward, 2) : '-'}`}
+            value={`${money.price(quote.eps)} / ${money.price(quote.eps_forward)}`}
           />
         </div>
       </div>
@@ -952,7 +1053,7 @@ export default function StockDetail() {
           : <div className="flex items-center justify-center text-sm text-[var(--text-muted)]" style={{ height: 300 }}>No chart data available</div>}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 mt-3 text-xs text-[var(--text-muted)]">
           <span>Vol {formatVolume(quote.volume)} · Avg {formatVolume(quote.avg_volume)}</span>
-          <span>Mkt Cap {formatMarketCap(quote.market_cap)}</span>
+          <span>Mkt Cap {money.big(quote.market_cap)}</span>
         </div>
         <button onClick={() => navigate(`/charts?symbol=${symbol}`)}
                 className="sm:hidden btn w-full mt-3" style={{ color: 'var(--accent)' }}>
@@ -969,7 +1070,7 @@ export default function StockDetail() {
 
       <div>
         {tab === 'Overview' && <OverviewTab symbol={symbol} profile={profile} />}
-        {tab === 'Financials' && <FinancialsTab symbol={symbol} currency={quote.currency || 'USD'} />}
+        {tab === 'Financials' && <FinancialsTab symbol={symbol} reported={quote.financial_currency || listing} />}
         {tab === 'Earnings' && <EarningsTab symbol={symbol} />}
         {tab === 'Valuation' && <ValuationTab symbol={symbol} price={quote.price} fallbackTarget={quote} />}
         {tab === 'Technicals' && <TechnicalsTab symbol={symbol} />}
@@ -977,5 +1078,6 @@ export default function StockDetail() {
         {tab === 'Dividends' && <DividendsTab symbol={symbol} />}
       </div>
     </div>
+    </MoneyContext.Provider>
   )
 }
