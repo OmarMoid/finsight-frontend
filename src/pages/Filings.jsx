@@ -28,6 +28,10 @@ import { formatDate } from '../utils/formatters'
  * served from the backend so the list, the reader and the guide can't drift.
  */
 
+// The analyst's working set. Everything else (insider Form 4s, registration
+// statements, fund filings) is a toggle away rather than the default view.
+const CORE_FORMS = ['10-K', '10-Q', '8-K', 'DEF 14A']
+
 const IMPORTANCE_STYLE = {
   essential: { label: 'Essential reading', colour: 'var(--accent)' },
   high: { label: 'Worth reading', colour: 'var(--positive)' },
@@ -305,6 +309,7 @@ export default function Filings() {
   const [reading, setReading] = useState(null)
   const [expanded, setExpanded] = useState({})
   const [refreshing, setRefreshing] = useState(false)
+  const [coreOnly, setCoreOnly] = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -417,7 +422,12 @@ export default function Filings() {
             </a>
           </div>
 
-          {index.groups.map((group) => (
+          <div className="segmented self-start" role="group" aria-label="Forms shown">
+            <button onClick={() => setCoreOnly(true)} aria-pressed={coreOnly}>10-K · 10-Q · 8-K · Proxy</button>
+            <button onClick={() => setCoreOnly(false)} aria-pressed={!coreOnly}>All forms</button>
+          </div>
+
+          {index.groups.filter((g) => !coreOnly || CORE_FORMS.includes(g.form)).map((group) => (
             <FormGroup
               key={group.form}
               group={group}
