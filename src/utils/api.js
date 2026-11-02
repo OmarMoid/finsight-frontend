@@ -51,7 +51,8 @@ export const stocksAPI = {
   // Several valuation models graded for reliability on this company, plus
   // why the DCF and analyst targets disagree. Fans out to quote, financials,
   // valuation and 5y history, so it gets more than the default timeout.
-  getModelCheck: (symbol) => client.get(`/stocks/model-check/${symbol}`, { timeout: 90000 }),
+  getModelCheck: (symbol, years = 10) =>
+    client.get(`/stocks/model-check/${symbol}${qs({ years })}`, { timeout: 90000 }),
   getEPS: (symbol) => client.get(`/stocks/eps/${symbol}`),
   getTechnicals: (symbol) => client.get(`/stocks/technicals/${symbol}`),
   getHistory: (symbol, period = '1y') =>

@@ -602,23 +602,116 @@ const STATUS_LABEL = {
   major: ['Major divergence', 'var(--negative)'],
 }
 
+const HORIZONS = [5, 7, 10, 15, 20]
+
+// FinSight's bear / base / bull against the analysts' low / median / high,
+// plus how the base case moves with WACC and terminal growth.
+function ScenarioTable({ model, analyst }) {
+  const money = useMoney()
+  const [showGrid, setShowGrid] = useState(false)
+  const sc = model.scenarios || {}
+  const a = model.assumptions
+  const pctOf = (v) => (v != null ? formatPercent(v * 100, 1, false) : '-')
+  const cols = [
+    ['Bear', sc.bear, analyst?.low, 'Low'],
+    ['Base', { value: model.value, ...sc.base }, analyst?.median ?? analyst?.mean, 'Median'],
+    ['Bull', sc.bull, analyst?.high, 'High'],
+  ]
+  const grid = model.sensitivity
+  return (
+    <div className="mt-4">
+      <h5 className="text-sm font-semibold text-[var(--text-primary)] mb-1.5">FinSight DCF scenarios vs analyst targets</h5>
+      <div className="table-scroll">
+        <table className="data-table" style={{ minWidth: 460 }}>
+          <thead><tr className="text-[var(--text-muted)] text-xs">
+            <th className="text-left font-normal py-1" />
+            {cols.map(([name]) => <th key={name} className="text-right font-normal py-1">{name}</th>)}
+          </tr></thead>
+          <tbody>
+            <tr className="border-t" style={{ borderColor: 'var(--border)' }}>
+              <td className="py-1.5 text-[var(--text-secondary)]">FinSight DCF ({model.years}-yr)</td>
+              {cols.map(([name, c]) => (
+                <td key={name} className="py-1.5 text-right font-mono font-semibold text-[var(--text-primary)]">
+                  {c?.value != null ? money.price(c.value) : 'below zero'}
+                </td>
+              ))}
+            </tr>
+            <tr className="border-t" style={{ borderColor: 'var(--border)' }}>
+              <td className="py-1.5 text-[var(--text-secondary)]">Analyst target</td>
+              {cols.map(([name, , t, label]) => (
+                <td key={name} className="py-1.5 text-right font-mono text-[var(--text-primary)]">
+                  {t != null ? money.price(t) : '-'}<span className="text-2xs text-[var(--text-muted)] ml-1">{label}</span>
+                </td>
+              ))}
+            </tr>
+            <tr className="border-t text-xs" style={{ borderColor: 'var(--border)' }}>
+              <td className="py-1.5 text-[var(--text-muted)]">Revenue growth · margin · WACC</td>
+              {cols.map(([name, c]) => (
+                <td key={name} className="py-1.5 text-right font-mono text-[var(--text-muted)]">
+                  {c ? `${pctOf(c.revenue_growth)} · ${pctOf(c.ebit_margin)} · ${pctOf(c.wacc)}` : '-'}
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p className="text-2xs text-[var(--text-muted)] mt-1.5">
+        Bear and bull use the lowest and highest analyst revenue estimates, margin −15% / +10% and WACC ±1 point.
+        {model.implied_wacc != null && ` The price implies a ${pctOf(model.implied_wacc)} WACC on the base case, vs ${pctOf(a.wacc)} used.`}
+      </p>
+      {grid && (
+        <>
+          <button onClick={() => setShowGrid(!showGrid)} className="mt-2 text-xs text-[var(--accent)]" aria-expanded={showGrid}>
+            {showGrid ? 'Hide' : 'Show'} sensitivity (WACC × terminal growth) {showGrid ? '▴' : '▾'}
+          </button>
+          {showGrid && (
+            <div className="table-scroll mt-1.5">
+              <table className="data-table" style={{ minWidth: 320 }}>
+                <thead><tr className="text-[var(--text-muted)] text-xs">
+                  <th className="text-left font-normal py-1">WACC \ g</th>
+                  {grid.terminal_growth.map((g) => <th key={g} className="text-right font-normal py-1">{pctOf(g)}</th>)}
+                </tr></thead>
+                <tbody>
+                  {grid.wacc.map((w, i) => (
+                    <tr key={w} className="border-t" style={{ borderColor: 'var(--border)' }}>
+                      <td className="py-1 font-mono text-[var(--text-secondary)]">{pctOf(w)}</td>
+                      {grid.values[i].map((v, j) => (
+                        <td key={j} className="py-1 text-right font-mono"
+                            style={{ color: i === 2 && j === 1 ? 'var(--accent)' : 'var(--text-primary)' }}>
+                          {v != null ? money.price(v) : '-'}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 function ModelCheckCard({ symbol }) {
   const money = useMoney()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(null)
+  const [years, setYears] = useState(10)
   useEffect(() => {
     let live = true
     setLoading(true)
-    stocksAPI.getModelCheck(symbol).then((r) => {
+    stocksAPI.getModelCheck(symbol, years).then((r) => {
       if (!live) return
       setData(r?.error ? null : r)
       setLoading(false)
     })
     return () => { live = false }
-  }, [symbol])
+  }, [symbol, years])
 
-  if (loading) return <SkeletonBlock height={220} />
+  // Keep the last result on screen while a new horizon loads.
+  if (loading && !data) return <SkeletonBlock height={220} />
   if (!data) return null
 
   const pctText = (v) => (v != null ? formatPercent(v) : '-')
@@ -639,6 +732,16 @@ function ModelCheckCard({ symbol }) {
       <div className="flex flex-wrap items-center gap-1.5 mt-2">
         <span className="text-2xs uppercase tracking-wide text-[var(--text-muted)] mr-1">Analysts usually use</span>
         {data.archetype.preferred_methods.map((m) => <Badge key={m}>{m}</Badge>)}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mt-3">
+        <span className="text-2xs uppercase tracking-wide text-[var(--text-muted)]">DCF forecast horizon</span>
+        <div className="segmented" role="group" aria-label="DCF forecast horizon">
+          {HORIZONS.map((y) => (
+            <button key={y} onClick={() => setYears(y)} aria-pressed={years === y}>{y}y</button>
+          ))}
+        </div>
+        {loading && <span className="text-2xs text-[var(--text-muted)]">Updating…</span>}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
@@ -666,8 +769,8 @@ function ModelCheckCard({ symbol }) {
           <div className="stat-label">Market-implied</div>
           <div className="stat-value text-sm">{g.market_implied != null ? `${ratio(g.market_implied)} growth needed` : '-'}</div>
           <div className="text-xs text-[var(--text-muted)]">
-            {g.market_implied_cost_of_equity != null
-              ? `Price implies a ${formatPercent(g.market_implied_cost_of_equity * 100, 1, false)} cost of equity vs ${formatPercent(data.cost_of_equity * 100, 1, false)} used`
+            {g.market_implied_wacc != null && data.dcf_model
+              ? `Price implies a ${formatPercent(g.market_implied_wacc * 100, 1, false)} WACC vs ${formatPercent(data.dcf_model.assumptions.wacc * 100, 1, false)} used`
               : `Cost of equity used ${formatPercent(data.cost_of_equity * 100, 1, false)}`}
           </div>
         </div>
@@ -717,7 +820,9 @@ function ModelCheckCard({ symbol }) {
           </tbody>
         </table>
       </div>
-      <p className="text-2xs text-[var(--text-muted)] mt-1.5">
+      {data.dcf_model && <ScenarioTable model={data.dcf_model} analyst={an} />}
+
+      <p className="text-2xs text-[var(--text-muted)] mt-3">
         Tap a model for its reasoning. The triangulated value blends models graded Medium or High, weighted by reliability; earnings power is a no-growth floor shown for reference.
       </p>
 
@@ -799,14 +904,15 @@ function ValuationTab({ symbol, price, fallbackTarget, forwardPE }) {
             {dcfAssumptions && (
               <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
                 <div className="text-2xs uppercase tracking-wide text-[var(--text-muted)] mb-1.5">Assumptions behind this number</div>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                   {[
-                    ['Discount rate', formatPercent(dcfAssumptions.discountRate * 100)],
+                    [data.dcf?.method === 'percent_of_sales' ? 'WACC' : 'Discount rate', formatPercent(dcfAssumptions.discountRate * 100)],
                     ...(dcfAssumptions.riskFreeRate != null ? [[
                       dcfAssumptions.riskFreeLabel?.startsWith('Australian') ? 'Risk-free (AU 10y)' : 'Risk-free (US 10y)',
                       formatPercent(dcfAssumptions.riskFreeRate * 100, 2, false),
                     ]] : []),
-                    ['Yr-1 growth', formatPercent(dcfAssumptions.stageOneGrowth * 100)],
+                    [data.dcf?.method === 'percent_of_sales' ? 'Revenue growth' : 'Yr-1 growth', formatPercent(dcfAssumptions.stageOneGrowth * 100)],
+                    ...(dcfAssumptions.ebitMargin != null ? [['EBIT margin', formatPercent(dcfAssumptions.ebitMargin * 100, 1, false)]] : []),
                     ['Terminal growth', formatPercent(dcfAssumptions.terminalGrowth * 100)],
                     ['Adj. beta', formatNumber(dcfAssumptions.adjustedBeta, 2)],
                   ].map(([label, value]) => (
@@ -821,7 +927,9 @@ function ValuationTab({ symbol, price, fallbackTarget, forwardPE }) {
           </>
         )}
         <p className="text-xs text-[var(--text-muted)] mt-3">
-          DCF is model-dependent.{dcfAssumptions?.riskFreeLabel ? ` Discounted using the ${dcfAssumptions.riskFreeLabel} yield${dcfAssumptions.riskFreeAsOf ? ` (${formatDate(dcfAssumptions.riskFreeAsOf)})` : ''}.` : ''} How far to trust it for this company is graded in the cross-check below. See Valuation Lab to build your own model.
+          {data.dcf?.method === 'percent_of_sales'
+            ? `FinSight percent-of-sales DCF: ${dcfAssumptions?.years || 10}-year forecast on analyst revenue estimates (change the horizon in the cross-check below).`
+            : 'DCF is model-dependent.'}{dcfAssumptions?.riskFreeLabel ? ` Discounted using the ${dcfAssumptions.riskFreeLabel} yield${dcfAssumptions.riskFreeAsOf ? ` (${formatDate(dcfAssumptions.riskFreeAsOf)})` : ''}.` : ''} How far to trust it for this company is graded in the cross-check below. See Valuation Lab to build your own model.
         </p>
         <button onClick={() => navigate(`/learning?symbol=${symbol}#lab`)} className="mt-2 text-sm text-[var(--accent)]">Open in Valuation Lab →</button>
       </div>
@@ -829,7 +937,7 @@ function ValuationTab({ symbol, price, fallbackTarget, forwardPE }) {
       <ModelCheckCard symbol={symbol} />
 
       <div className="card">
-        <h4 className="card-title mb-3">Price Target</h4>
+        <h4 className="card-title mb-3">Analyst Price Targets</h4>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div><div className="text-2xs text-[var(--text-muted)]">Low</div><div className="font-mono text-[var(--text-primary)]">{money.price(tgt.targetLow)}</div></div>
           <div><div className="text-2xs text-[var(--text-muted)]">Median</div><div className="font-mono font-bold text-[var(--text-primary)]">{money.price(tgt.targetMedian)}</div></div>
