@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+import { Fragment, useState, useEffect, useCallback, createContext, useContext } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Star, ExternalLink } from 'lucide-react'
 import {
@@ -546,6 +546,160 @@ function FinancialsTab({ symbol, reported }) {
   )
 }
 
+// ── Valuation model cross-check ────────────────────────────────────────────
+// No single model fits every company: a DCF misreads high-growth names,
+// heavy reinvestors, cyclicals and banks. This grades each model's
+// reliability for the company in view, blends the reliable ones, and says
+// why the DCF and analysts' targets disagree. Guru reads the same payload.
+const GRADE_COLOR = {
+  High: 'var(--positive)', Medium: 'var(--accent-gold)', Low: 'var(--negative)',
+  Floor: 'var(--text-muted)', 'N/A': 'var(--text-muted)',
+}
+const STATUS_LABEL = {
+  aligned: ['Aligned', 'var(--positive)'],
+  moderate: ['Moderate gap', 'var(--accent-gold)'],
+  major: ['Major divergence', 'var(--negative)'],
+}
+
+function ModelCheckCard({ symbol }) {
+  const money = useMoney()
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [open, setOpen] = useState(null)
+  useEffect(() => {
+    let live = true
+    setLoading(true)
+    stocksAPI.getModelCheck(symbol).then((r) => {
+      if (!live) return
+      setData(r?.error ? null : r)
+      setLoading(false)
+    })
+    return () => { live = false }
+  }, [symbol])
+
+  if (loading) return <SkeletonBlock height={220} />
+  if (!data) return null
+
+  const pctText = (v) => (v != null ? formatPercent(v) : '-')
+  const ratio = (v) => (v != null ? formatPercent(v * 100, 0, false) : 'n/a')
+  const tri = data.triangulated
+  const an = data.analyst
+  const div = data.dcf_vs_analyst || {}
+  const status = STATUS_LABEL[div.status]
+  const g = data.growth || {}
+
+  return (
+    <div className="card">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+        <h4 className="card-title">Valuation Model Cross-Check</h4>
+        <Badge color="var(--accent)">{data.archetype.label}</Badge>
+      </div>
+      <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{data.archetype.description}</p>
+      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+        <span className="text-2xs uppercase tracking-wide text-[var(--text-muted)] mr-1">Analysts usually use</span>
+        {data.archetype.preferred_methods.map((m) => <Badge key={m}>{m}</Badge>)}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
+        <div className="stat">
+          <div className="stat-label">Triangulated value</div>
+          <div className="stat-value">{tri ? money.price(tri.value) : 'No reliable model'}</div>
+          {tri && (
+            <div className="text-xs">
+              <span className="font-mono" style={{ color: getChangeCSSVar(tri.upside_pct) }}>{pctText(tri.upside_pct)}</span>
+              <span className="text-[var(--text-muted)]"> vs price · {tri.confidence} confidence</span>
+            </div>
+          )}
+        </div>
+        <div className="stat">
+          <div className="stat-label">Analyst mean target</div>
+          <div className="stat-value">{an ? money.price(an.mean) : '-'}</div>
+          {an && (
+            <div className="text-xs">
+              <span className="font-mono" style={{ color: getChangeCSSVar(an.upside_pct) }}>{pctText(an.upside_pct)}</span>
+              <span className="text-[var(--text-muted)]"> vs price{an.count ? ` · ${an.count} analysts` : ''}</span>
+            </div>
+          )}
+        </div>
+        <div className="stat">
+          <div className="stat-label">Market-implied</div>
+          <div className="stat-value text-sm">{g.market_implied != null ? `${ratio(g.market_implied)} growth needed` : '-'}</div>
+          <div className="text-xs text-[var(--text-muted)]">
+            {g.market_implied_cost_of_equity != null
+              ? `Price implies a ${formatPercent(g.market_implied_cost_of_equity * 100, 1, false)} cost of equity vs ${formatPercent(data.cost_of_equity * 100, 1, false)} used`
+              : `Cost of equity used ${formatPercent(data.cost_of_equity * 100, 1, false)}`}
+          </div>
+        </div>
+      </div>
+
+      <div className="table-scroll mt-3">
+        <table className="data-table" style={{ minWidth: 460 }}>
+          <thead><tr className="text-[var(--text-muted)] text-xs">
+            <th className="text-left font-normal py-1">Model</th>
+            <th className="text-right font-normal py-1">Value</th>
+            <th className="text-right font-normal py-1">vs price</th>
+            <th className="text-left font-normal py-1 pl-3">Reliability here</th>
+          </tr></thead>
+          <tbody>
+            {data.models.map((m) => (
+              <Fragment key={m.key}>
+                <tr className="border-t cursor-pointer" style={{ borderColor: 'var(--border)' }}
+                    onClick={() => setOpen(open === m.key ? null : m.key)} aria-expanded={open === m.key}>
+                  <td className="py-1.5 text-[var(--text-primary)]">
+                    <span className="text-[var(--text-muted)] mr-1">{open === m.key ? '▾' : '▸'}</span>{m.name}
+                  </td>
+                  <td className="py-1.5 text-right font-mono text-[var(--text-primary)]">{m.value != null ? money.price(m.value) : '-'}</td>
+                  <td className="py-1.5 text-right font-mono" style={{ color: m.upside_pct != null ? getChangeCSSVar(m.upside_pct) : 'var(--text-muted)' }}>{pctText(m.upside_pct)}</td>
+                  <td className="py-1.5 pl-3">
+                    <div className="flex items-center gap-2">
+                      {m.reliability != null && (
+                        <div className="h-1.5 w-16 rounded-full overflow-hidden" style={{ background: 'var(--bg-input)' }}>
+                          <div className="h-full rounded-full" style={{ width: `${m.reliability}%`, background: GRADE_COLOR[m.grade] }} />
+                        </div>
+                      )}
+                      <span className="text-xs font-semibold" style={{ color: GRADE_COLOR[m.grade] }}>{m.grade}</span>
+                    </div>
+                  </td>
+                </tr>
+                {open === m.key && (
+                  <tr>
+                    <td colSpan={4} className="pb-2 pt-0.5">
+                      <div className="text-xs text-[var(--text-muted)] mb-1">{m.method}</div>
+                      <ul className="list-disc pl-5 space-y-0.5 text-xs text-[var(--text-secondary)] leading-relaxed">
+                        {m.reasons.map((r) => <li key={r}>{r}</li>)}
+                      </ul>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-2xs text-[var(--text-muted)] mt-1.5">
+        Tap a model for its reasoning. The triangulated value blends models graded Medium or High, weighted by reliability; earnings power is a no-growth floor shown for reference.
+      </p>
+
+      <div className="mt-4 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
+        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+          <h5 className="text-sm font-semibold text-[var(--text-primary)]">Why the DCF and analysts {div.status === 'aligned' ? 'agree' : 'disagree'}</h5>
+          {status && <Badge color={status[1]}>{status[0]}{div.gap_pct != null ? ` · ${pctText(div.gap_pct)}` : ''}</Badge>}
+        </div>
+        <p className="text-sm text-[var(--text-secondary)]">{div.summary}</p>
+        {div.reasons?.length > 0 && (
+          <ol className="list-decimal pl-5 mt-2 space-y-1.5 text-sm text-[var(--text-secondary)] leading-relaxed">
+            {div.reasons.map((r) => (
+              <li key={r.title}><span className="font-medium text-[var(--text-primary)]">{r.title}.</span> {r.detail}</li>
+            ))}
+          </ol>
+        )}
+        {an?.notes?.length > 0 && <p className="text-xs text-[var(--text-muted)] mt-2">{an.notes.join(' ')}</p>}
+        <p className="text-sm text-[var(--text-primary)] mt-3 leading-relaxed">{data.verdict}</p>
+      </div>
+    </div>
+  )
+}
+
 function ValuationTab({ symbol, price, fallbackTarget }) {
   const navigate = useNavigate()
   const money = useMoney()
@@ -625,10 +779,12 @@ function ValuationTab({ symbol, price, fallbackTarget }) {
           </>
         )}
         <p className="text-xs text-[var(--text-muted)] mt-3">
-          DCF is model-dependent.{dcfAssumptions?.riskFreeLabel ? ` Discounted using the ${dcfAssumptions.riskFreeLabel} yield${dcfAssumptions.riskFreeAsOf ? ` (${formatDate(dcfAssumptions.riskFreeAsOf)})` : ''}.` : ''} See Valuation Lab to build your own model.
+          DCF is model-dependent.{dcfAssumptions?.riskFreeLabel ? ` Discounted using the ${dcfAssumptions.riskFreeLabel} yield${dcfAssumptions.riskFreeAsOf ? ` (${formatDate(dcfAssumptions.riskFreeAsOf)})` : ''}.` : ''} How far to trust it for this company is graded in the cross-check below. See Valuation Lab to build your own model.
         </p>
         <button onClick={() => navigate(`/learning?symbol=${symbol}#lab`)} className="mt-2 text-sm text-[var(--accent)]">Open in Valuation Lab →</button>
       </div>
+
+      <ModelCheckCard symbol={symbol} />
 
       <div className="card">
         <h4 className="card-title mb-3">Price Target</h4>
