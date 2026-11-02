@@ -164,7 +164,11 @@ export default function Fundamentals() {
     setParams({ symbol: next })
   }
 
-  const currency = quote?.currency || 'USD'
+  // Prices and market value are in the listing currency, but the statements
+  // are in whatever the company reports in: BHP lists in A$ and reports in US$,
+  // so labelling its statements with the listing currency overstated them ~40%.
+  const listingCurrency = quote?.currency || 'USD'
+  const currency = quote?.financial_currency || listingCurrency
   const km = financials?.key_metrics_ttm || {}
   const rt = financials?.ratios_ttm || {}
   const income = financials?.income_statement || []
@@ -179,6 +183,7 @@ export default function Fundamentals() {
 
   const pct = (v, digits = 1) => (v != null ? formatPercent(v * 100, digits, false) : null)
   const money = (v) => (v != null ? formatCurrency(v, currency, true) : '-')
+  const listedMoney = (v) => (v != null ? formatCurrency(v, listingCurrency, true) : '-')
   const plain = (v, d = 2) => (v != null ? formatNumber(v, d) : null)
 
   const pe = rt.priceToEarningsRatioTTM ?? km.peRatioTTM
@@ -208,7 +213,7 @@ export default function Fundamentals() {
     ['Debt / Equity', plain(rt.debtToEquityRatioTTM ?? km.debtToEquityTTM)],
     ['Total Debt', money(balance[0]?.totalDebt)],
     ['Cash & Equivalents', money(balance[0]?.cashAndCashEquivalents)],
-    ['Enterprise Value', money(ev.enterpriseValue)],
+    ['Enterprise Value', listedMoney(ev.enterpriseValue)],
   ]
 
   const growthRows = [
@@ -265,13 +270,13 @@ export default function Fundamentals() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-              <Metric label="Price" value={quote?.price != null ? formatCurrency(quote.price, currency) : '-'} />
+              <Metric label="Price" value={quote?.price != null ? formatCurrency(quote.price, listingCurrency) : '-'} />
               <Metric
                 label="Change"
                 value={quote?.change_percent != null ? formatPercent(quote.change_percent) : '-'}
                 colour={getChangeCSSVar(quote?.change_percent)}
               />
-              <Metric label="Market Cap" value={money(quote?.market_cap)} />
+              <Metric label="Market Cap" value={listedMoney(quote?.market_cap)} />
               <Metric label="Beta" value={plain(quote?.beta) ?? '-'} hint="vs. the market" />
             </div>
 
