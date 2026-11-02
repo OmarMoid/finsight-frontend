@@ -546,6 +546,47 @@ function FinancialsTab({ symbol, reported }) {
   )
 }
 
+// Valuation multiples. Loaded separately from the valuation payload (which
+// carries the DCF, targets and grades) because the ratios live in the
+// financials response; each tile falls back across providers and shows "-"
+// only when none of them has the figure.
+function MultiplesCard({ symbol, forwardPE }) {
+  const [km, setKm] = useState(null)
+  const [rt, setRt] = useState({})
+  useEffect(() => {
+    let live = true
+    stocksAPI.getFinancials(symbol, 'annual').then((r) => {
+      if (!live) return
+      setKm(r?.error ? {} : r?.key_metrics_ttm || {})
+      setRt(r?.error ? {} : r?.ratios_ttm || {})
+    })
+    return () => { live = false }
+  }, [symbol])
+  if (!km) return <SkeletonBlock height={96} />
+  const pe = rt.priceToEarningsRatioTTM ?? km.peRatioTTM
+  const pct = (v) => (v != null ? formatPercent(v * 100, 1, false) : null)
+  const tiles = [
+    ['P/E', pe, getPEContext(pe).color],
+    ['Fwd P/E', forwardPE, null],
+    ['P/B', rt.priceToBookRatioTTM ?? km.pbRatioTTM, null],
+    ['P/S', rt.priceToSalesRatioTTM ?? km.priceToSalesRatioTTM, null],
+    ['EV/EBITDA', km.evToEBITDATTM, null],
+    ['EV/Sales', km.evToSalesTTM, null],
+    ['PEG', km.pegRatioTTM, null],
+    ['FCF Yield', pct(km.freeCashFlowYieldTTM), null],
+  ]
+  return (
+    <div>
+      <h4 className="card-title mb-2">Valuation Multiples (TTM)</h4>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {tiles.map(([n, v, c]) => (
+          <MetricTile key={n} name={n} value={v != null ? (typeof v === 'number' ? formatNumber(v, 2) : v) : '-'} color={v != null ? c : null} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Valuation model cross-check ────────────────────────────────────────────
 // No single model fits every company: a DCF misreads high-growth names,
 // heavy reinvestors, cyclicals and banks. This grades each model's
@@ -700,7 +741,7 @@ function ModelCheckCard({ symbol }) {
   )
 }
 
-function ValuationTab({ symbol, price, fallbackTarget }) {
+function ValuationTab({ symbol, price, fallbackTarget, forwardPE }) {
   const navigate = useNavigate()
   const money = useMoney()
   const [data, setData] = useState(null)
@@ -737,6 +778,7 @@ function ValuationTab({ symbol, price, fallbackTarget }) {
 
   return (
     <div className="space-y-4">
+      <MultiplesCard symbol={symbol} forwardPE={forwardPE} />
       <div className="card">
         {dcfReason ? (
           <>
@@ -1228,7 +1270,7 @@ export default function StockDetail() {
         {tab === 'Overview' && <OverviewTab symbol={symbol} profile={profile} />}
         {tab === 'Financials' && <FinancialsTab symbol={symbol} reported={quote.financial_currency || listing} />}
         {tab === 'Earnings' && <EarningsTab symbol={symbol} />}
-        {tab === 'Valuation' && <ValuationTab symbol={symbol} price={quote.price} fallbackTarget={quote} />}
+        {tab === 'Valuation' && <ValuationTab symbol={symbol} price={quote.price} fallbackTarget={quote} forwardPE={quote.pe_forward} />}
         {tab === 'Technicals' && <TechnicalsTab symbol={symbol} />}
         {tab === 'News' && <NewsTab symbol={symbol} />}
         {tab === 'Dividends' && <DividendsTab symbol={symbol} />}
