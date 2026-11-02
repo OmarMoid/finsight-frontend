@@ -9,6 +9,7 @@
 
 import { EXTRA_TOPICS, EXTRA_LESSONS, EXTRA_LESSON_QUIZZES } from './learningExtra'
 import { ANALYST_TOPICS, ANALYST_LESSONS, ANALYST_QUIZZES } from './learningAnalyst'
+import { PRO_TOPICS, PRO_LESSONS, PRO_QUIZZES } from './learningPro'
 import { DEEP_DIVES } from './learningDeepDives'
 
 // ── Curriculum structure ───────────────────────────────────────────────────
@@ -109,7 +110,7 @@ for (const cat of CATEGORIES) {
   // Both expansion packs fold in here, before the index is built, so
   // everything downstream — progress tracking, quizzes, category tabs,
   // TOTAL_TOPICS — picks them up with no further changes.
-  const extra = [...(EXTRA_TOPICS[cat.key] || []), ...(ANALYST_TOPICS[cat.key] || [])]
+  const extra = [...(EXTRA_TOPICS[cat.key] || []), ...(ANALYST_TOPICS[cat.key] || []), ...(PRO_TOPICS[cat.key] || [])]
   if (!extra.length) continue
   cat.topics = [...cat.topics, ...extra].sort(
     (a, b) => (_LEVEL_RANK[a.level] - _LEVEL_RANK[b.level]) || a.id.localeCompare(b.id)
@@ -2399,8 +2400,8 @@ export const QUIZ_BANKS = {
 // ── Merge in the expansion pack's lesson bodies and quiz banks ─────────────
 // Mutating the exported objects (rather than rebuilding them) keeps every
 // existing import site working unchanged.
-Object.assign(LESSON_CONTENT, EXTRA_LESSONS, ANALYST_LESSONS)
-Object.assign(QUIZ_BANKS, EXTRA_LESSON_QUIZZES, ANALYST_QUIZZES)
+Object.assign(LESSON_CONTENT, EXTRA_LESSONS, ANALYST_LESSONS, PRO_LESSONS)
+Object.assign(QUIZ_BANKS, EXTRA_LESSON_QUIZZES, ANALYST_QUIZZES, PRO_QUIZZES)
 
 // Re-exported so pages can import everything learning-related from one module.
 export { DEEP_DIVES }
